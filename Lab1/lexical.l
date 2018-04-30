@@ -1,3 +1,6 @@
+%{
+	#include"syntax.tab.h"
+%}
 %option yylineno
 
 Delim [ \t\n]
@@ -50,6 +53,9 @@ while {printf("WHILE\n"); return WHILE;}
 	else {
 		/* process the string literal */
 		}
+}
+. {
+	printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
 }
 %%
 
