@@ -1,6 +1,8 @@
 %{
 	#include "lex.yy.c"
 	#include<stdio.h>
+	#include<stdlib.h>
+	
 %}
 
 %token INT
@@ -46,11 +48,7 @@ Factor : Term
 Term : INT
 	;
 %%
-#include "lex.yy.c"
-int main()
-{
-	yyparse();
-}
+
 yyerror(char * msg)
 {
 	fprintf(stderr, "error: %s\n", msg);
