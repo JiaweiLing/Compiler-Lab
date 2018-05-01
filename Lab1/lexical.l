@@ -1,9 +1,15 @@
 %{
 	#include"syntax.tab.h"
+	int yycolumn = 1;
+	#define YY_USER_ACTION \
+		yylloc.first_line = yylloc.last_line = yylineno; \
+		yylloc.first_column = yycolumn; \
+		yylloc.last_column = yycolumn + yyleng - 1; \
+		yycolumn += yyleng;
 %}
 %option yylineno
 
-Delim [ \t\n]
+Delim [ \t]
 Space {Delim}+
 Letter [_a-zA-Z]
 Number [0-9]
@@ -17,6 +23,7 @@ Type "int"|"float"
 
 %%
 {Space} {}
+\n {yycolumn = 1;}
 {Int} {printf("INT: %s\n", yytext); return INT;}
 {Float} {printf("FLOAT: %s\n", yytext); return FLOAT;}
 ";" {printf("SEMI\n"); return SEMI;}

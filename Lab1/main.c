@@ -1,8 +1,9 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include"syntax.tab.h"
+
 extern void yyrestart(FILE *);
-extern int yyparse();
+extern int yyparse(void);
 int main(int argc, char** argv) 
 {
 	if (argc <= 1) return 1;

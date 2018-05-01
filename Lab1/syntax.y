@@ -1,10 +1,8 @@
 %{
+	#include <stdio.h>
 	#include "lex.yy.c"
-	#include<stdio.h>
-	#include<stdlib.h>
-	
 %}
-
+%locations
 %token INT
 %token FLOAT
 %token SEMI
@@ -35,48 +33,62 @@
 %%
 
 Program : ExtDefList
+	;
 ExtDefList : ExtDef ExtDefList
 	| /* Empty */
+	;
 ExtDef : Specifier ExtDecList SEMI
 	| Specifier SEMI
 	| Specifier FunDec CompSt
+	;
 ExtDecList : VarDec
 	| VarDec COMMA ExtDecList
-
+	;
 Specifier : TYPE
 	| StructSpecifier
+	;
 StructSpecifier : STRUCT OptTag LC DefList RC
 	| STRUCT Tag
+	;
 OptTag : ID
 	| /* Empty */ 
+	;
 Tag : ID
-
+	;
 VarDec : ID
 	| VarDec LB INT RB
+	;
 FunDec : ID LP VarList RP
 	| ID LP RP
+	;
 VarList : ParamDec COMMA VarList
 	| ParamDec
+	;
 ParamDec : Specifier VarDec
-
+	;
 CompSt : LC DefList StmtList RC
+	;
 StmtList : Stmt StmtList
 	| /* Empty */
+	;
 Stmt : Exp SEMI
 	| CompSt
 	| RETURN Exp SEMI
 	| IF LP Exp RP Stmt
 	| IF LP Exp RP Stmt ELSE Stmt
 	| WHILE LP Exp RP Stmt
-
+	;
 DefList : Def DefList
 	| /* Empty */
+	;
 Def : Specifier DecList SEMI
+	;
 DecList : Dec
 	| Dec COMMA DecList
+	;
 Dec : VarDec
 	| VarDec ASSIGNOP Exp
-
+	;
 Exp : Exp ASSIGNOP Exp
 	| Exp AND Exp
 	| Exp OR Exp
@@ -95,11 +107,13 @@ Exp : Exp ASSIGNOP Exp
 	| ID
 	| INT
 	| FLOAT
+	;
 Args : Exp COMMA Args
 	| Exp
+	;
 %%
 
-void yyerror(char * msg)
+yyerror(char * msg)
 {
 	fprintf(stderr, "error: %s\n", msg);
 }
