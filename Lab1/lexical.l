@@ -1,5 +1,6 @@
 %{
 	#include"syntax.tab.h"
+	#include"tree.h"
 	int yycolumn = 1;
 	#define YY_USER_ACTION \
 		yylloc.first_line = yylloc.last_line = yylineno; \
@@ -24,45 +25,164 @@ Type "int"|"float"
 %%
 {Space} {}
 \n {yycolumn = 1;}
-{Int} {printf("INT: %s\n", yytext); return INT;}
-{Float} {printf("FLOAT: %s\n", yytext); return FLOAT;}
-";" {printf("SEMI\n"); return SEMI;}
-"," {printf("COMMA\n"); return COMMA;}
-"=" {printf("ASSIGNOP\n"); return ASSIGNOP;}
-">"|"<"|">="|"<="|"=="|"!=" {printf("RELOP\n"); return RELOP;}
-"+" {printf("PLUS\n"); return PLUS;}
-"-" {printf("SUB\n"); return MINUS;}
-"*" {printf("MUL\n"); return STAR;}
-"/" {printf("DIV\n"); return DIV;}
-"&&" {printf("AND\n"); return AND;}
-"||" {printf("OR\n"); return OR;}
-"." {printf("DOT\n"); return DOT;}
-"!" {printf("NOT\n"); return NOT;}
-{Type} {printf("TYPE: %s\n", yytext); return TYPE;}
-"(" {printf("LP\n"); return LP;}
-")" {printf("RP\n"); return RP;}
-"[" {printf("LB\n"); return LB;}
-"]" {printf("RB\n"); return RB;}
-"{" {printf("LC\n"); return LC;}
-"}" {printf("RC\n"); return RC;}
-struct {printf("STRUCT\n"); return STRUCT;}
-return {printf("RETURN\n"); return RETURN;}
-if {printf("IF\n"); return IF;}
-else {printf("ELSE\n"); return ELSE;}
-while {printf("WHILE\n"); return WHILE;}
-{Id} {printf("ID: %s\n", yytext); return ID;}
-"//" {char c = input(); while (c != '\n') c = input();}
-\"[^\"]*\" {
-	if (yytext[yyleng - 2] == '\\') {
-		yyless(yyleng - 1);
-		yymore();
-	} 
-	else {
-		/* process the string literal */
+{Int} 
+	{
+		yylval.node = NewNode("INT");
+		return INT;
+	}
+{Float} 
+	{
+		yylval.node = NewNode("FLOAT");
+		return FLOAT;
+	}
+";" 
+	{
+		yylval.node = NewNode("SEMI");
+		return SEMI;
+	}
+"," 
+	{
+		yylval.node = NewNode("COMMA");
+		return COMMA;
+	}
+"=" 
+	{
+		yylval.node = NewNode("ASSIGNOP");
+		return ASSIGNOP;
+	}
+">"|"<"|">="|"<="|"=="|"!=" 
+	{
+		yylval.node = NewNode("RELOP");
+		return RELOP;
+	}
+"+"
+	{
+		yylval.node = NewNode("PLUS");
+		return PLUS;
+	}
+"-"
+	{
+		yylval.node = NewNode("MINUS");
+		return MINUS;
+	}
+"*" 
+	{
+		yylval.node = NewNode("STAR");
+		return STAR;
+	}
+"/" 
+	{
+		yylval.node = NewNode("DIV");
+		return DIV;
+	}
+"&&" 
+	{
+		yylval.node = NewNode("AND");
+		return AND;
+	}
+"||" 
+	{
+		yylval.node = NewNode("OR");
+		return OR;
+	}
+"." 
+	{
+		yylval.node = NewNode("DOT");
+		return DOT;
+	}
+"!" 
+	{
+		yylval.node = NewNode("NOT");
+		return NOT;
+	}
+{Type} 
+	{
+		yylval.node = NewNode("TYPE");
+		return TYPE;
+	}
+"(" 
+	{
+		yylval.node = NewNode("LP");
+		return LP;
+	}
+")" 
+	{
+		yylval.node = NewNode("RP");
+		return RP;
+	}
+"[" 
+	{
+		yylval.node = NewNode("LB");
+		return LB;
+	}
+"]" 
+	{
+		yylval.node = NewNode("RB");
+		return RB;
+	}
+"{" 
+	{
+		yylval.node = NewNode("LC");
+		return LC;
+	}
+"}" 
+	{
+		yylval.node = NewNode("RC");
+		return RC;
+	}
+struct 
+	{
+		yylval.node = NewNode("STRUCT");
+		return STRUCT;
+	}
+return 
+	{
+		yylval.node = NewNode("RETURN");
+		return RETURN;
+	}
+if 
+	{
+		yylval.node = NewNode("IF");
+		return IF;
+	}
+else 
+	{
+		yylval.node = NewNode("ELSE");
+		return ELSE;
+	}
+while 
+	{
+		yylval.node = NewNode("WHILE");
+		return WHILE;
+	}
+{Id} 
+	{
+		yylval.node = NewNode("ID");
+		return ID;
+	}
+
+"//" 
+	{
+		char c = input();
+		while (c != '\n')
+			c = input();
+	}
+\"[^\"]*\" 
+	{
+		if (yytext[yyleng - 2] == '\\')
+		{
+			yyless(yyleng - 1);
+			yymore();
+		} 
+		else
+		{
+			/* process the string literal */
 		}
-}
-. {
-	printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
-}
+	}
+
+. 
+	{
+		printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
+	}
 %%
 
