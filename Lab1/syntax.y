@@ -2,34 +2,32 @@
 	#include <stdio.h>
 	#include "lex.yy.c"
 %}
+%union {
+	int type_int;
+	float type_float;
+	double type_double;
+}
 %locations
-%token INT
-%token FLOAT
-%token SEMI
-%token COMMA
-%token ASSIGNOP
-%token RELOP
-%token PLUS
-%token MINUS
-%token STAR
-%token DIV
-%token AND
-%token OR
-%token DOT
-%token NOT
+%token <type_int> INT
+%token <type_float> FLOAT
+%token SEMI COMMA ASSIGNOP RELOP
+%token PLUS MINUS STAR DIV
+%token AND OR DOT NOT
 %token TYPE
-%token LP
-%token RP
-%token LB
-%token RB
-%token LC
-%token RC
-%token STRUCT
-%token RETURN
-%token IF
-%token ELSE
-%token WHILE
-%token ID
+%token LP RP LB RB LC RC
+%token STRUCT RETURN IF ELSE WHILE ID
+
+%right ASSIGNOP  
+%left OR 
+%left AND 
+%left RELOP
+%left PLUS MINUS 
+%left STAR DIV
+%right NOT
+%left DOT LB RB LP RP
+
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 %%
 
 Program : ExtDefList
@@ -74,7 +72,7 @@ StmtList : Stmt StmtList
 Stmt : Exp SEMI
 	| CompSt
 	| RETURN Exp SEMI
-	| IF LP Exp RP Stmt
+	| IF LP Exp RP Stmt %prec LOWER_THAN_ELSE
 	| IF LP Exp RP Stmt ELSE Stmt
 	| WHILE LP Exp RP Stmt
 	;
