@@ -11,10 +11,11 @@ Tree *CreateTree(char *name)
 	return root_node;
 }
 
-Tree *NewNode(char *name, int line)
+Tree *NewNode(char *name, char *value, int line)
 {
 	Tree *p = (Tree *)malloc(sizeof(Tree));
 	p->name = name;
+	strcpy(p->value, value);
 	if (line != -1)
 	{
 		p->size = line;
@@ -40,7 +41,7 @@ Tree *AddChild(char *name, int line, int num, ...)
 	
 	Tree *parent = (Tree *)malloc(sizeof(Tree));
 	parent->name = name;
-	
+
 	va_start(arg_tree, line);
 	
 	if (line != -1)
@@ -77,7 +78,17 @@ void PrintTree(Tree *parent, int blank)
 	if (parent->empty == 0 && parent->temp == 1)
 	{
 		for (i = 0; i < blank; i++) printf(" ");
-		printf("%s\n", parent->name);
+		if (strcmp(parent->name, "ID") == 0 || strcmp(parent->name, "TYPE") == 0)
+			printf("%s: %s\n",parent->name, parent->value);
+		else
+		if (strcmp(parent->name, "INT") == 0)
+			printf("%s: %d\n", parent->name, strtol(parent->value, NULL, 0));
+		else
+		if (strcmp(parent->name, "FLOAT") == 0)
+			printf("%s: %f\n", parent->name, atof(parent->value));
+		else
+			printf("%s\n", parent->name);
+		
 	}
 	
 	if (parent->child != NULL) PrintTree(parent->child, blank + 2);

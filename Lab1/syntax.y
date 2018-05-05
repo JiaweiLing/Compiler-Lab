@@ -11,6 +11,7 @@
 	Tree *node;
 }
 
+
 %token <node> INT FLOAT
 %token <node> ID SEMI COMMA ASSIGNOP RELOP PLUS MINUS STAR DIV AND
 %token <node> OR DOT NOT TYPE LP RP LB RB LC RC
@@ -36,7 +37,7 @@
 Program : ExtDefList {root_node = $$ = AddChild("Program", -1, 1, $1);}
 	;
 ExtDefList : ExtDef ExtDefList {$$ = AddChild("ExtDefList", -1, 2, $1, $2);}
-	| /* Empty */{$$ = NewNode("ExtDefList", -1);}
+	| /* Empty */{$$ = NewNode("ExtDefList", "", -1);}
 	;
 ExtDef : Specifier ExtDecList SEMI {$$ = AddChild("ExtDef", -1, 3, $1, $2, $3);}
 	| Specifier SEMI {$$ = AddChild("ExtDef", -1, 2, $1, $2);}
@@ -52,7 +53,7 @@ StructSpecifier : STRUCT OptTag LC DefList RC {$$ = AddChild("StructSpecifier", 
 	| STRUCT Tag {$$ = AddChild("StructSpecifier", -1, 2, $1, $2);}
 	;
 OptTag : ID {$$ = AddChild("OptTag", -1, 1, $1);}
-	| /* Empty */ {$$ = NewNode("OptTag", -1);}
+	| /* Empty */ {$$ = NewNode("OptTag", "", -1);}
 	;
 Tag : ID {$$ = AddChild("Tag", -1, 1, $1);}
 	;
@@ -70,7 +71,7 @@ ParamDec : Specifier VarDec {$$ = AddChild("ParamDec", -1, 2, $1, $2);}
 CompSt : LC DefList StmtList RC {$$ = AddChild("CompSt", -1, 4, $1, $2, $3, $4);}
 	;
 StmtList : Stmt StmtList {$$ = AddChild("StmtList", -1, 2, $1, $2);}
-	| /* Empty */ {$$ = NewNode("StmtList", -1);}
+	| /* Empty */ {$$ = NewNode("StmtList", "", -1);}
 	;
 Stmt : Exp SEMI {$$ = AddChild("Stmt", -1, 2, $1, $2);}
 	| CompSt {$$ = AddChild("Stmt", -1, 1, $1);}
@@ -80,7 +81,7 @@ Stmt : Exp SEMI {$$ = AddChild("Stmt", -1, 2, $1, $2);}
 	| WHILE LP Exp RP Stmt {$$ = AddChild("Stmt", -1, 5, $1, $2, $3, $4, $5);}
 	;
 DefList : Def DefList {$$ = AddChild("DefList", -1, 2, $1, $2);}
-	| /* Empty */ {$$ = NewNode("DefList", -1);}
+	| /* Empty */ {$$ = NewNode("DefList", "", -1);}
 	;
 Def : Specifier DecList SEMI {$$ = AddChild("Def", -1, 3, $1, $2, $3);}
 	;

@@ -19,119 +19,119 @@ Dec ([1-9][0-9]*)|0
 Oct 0[0-7]*
 Hex 0[Xx][0-9a-fA-F]*
 Int {Dec}|{Oct}|{Hex}
-Float ({Number}+\.{Number}+)|({Number}*\.{Number}[Ee][+-]?{Number}+)
+Float ({Number}+\.{Number}+)|({Number}*\.{Number}*[Ee][+-]?{Number}+)
 
 
 %%
 {Space} {}
 \n {yycolumn = 1;}
 struct  {
-		yylval.node = NewNode("STRUCT", yylineno);
+		yylval.node = NewNode("STRUCT", "none", yylineno);
 		return STRUCT;
 	}
 return 	{
-		yylval.node = NewNode("RETURN", yylineno);
+		yylval.node = NewNode("RETURN", "none", yylineno);
 		return RETURN;
 	}
 if 	{
-		yylval.node = NewNode("IF", yylineno);
+		yylval.node = NewNode("IF", "none", yylineno);
 		return IF;
 	}
 else 	{
-		yylval.node = NewNode("ELSE", yylineno);
+		yylval.node = NewNode("ELSE", "none", yylineno);
 		return ELSE;
 	}
 while 	{
-		yylval.node = NewNode("WHILE", yylineno);
+		yylval.node = NewNode("WHILE", "none", yylineno);
 		return WHILE;
 	}
 {Type} 	{
-		yylval.node = NewNode("TYPE", yylineno);
+		yylval.node = NewNode("TYPE", yytext, yylineno);
 		return TYPE;
 	}
 {Int} 	{
-		yylval.node = NewNode("INT", yylineno);
+		yylval.node = NewNode("INT", yytext, yylineno);
 		return INT;
 	}
 {Float} {
-		yylval.node = NewNode("FLOAT", yylineno);
+		yylval.node = NewNode("FLOAT", yytext, yylineno);
 		return FLOAT;
 	}
 {Id} 	{
-		yylval.node = NewNode("ID", yylineno);
+		yylval.node = NewNode("ID", yytext, yylineno);
 		return ID;
 	}
 ";" 	{
-		yylval.node = NewNode("SEMI", yylineno);
+		yylval.node = NewNode("SEMI", "none", yylineno);
 		return SEMI;
 	}
 "," 	{
-		yylval.node = NewNode("COMMA", yylineno);
+		yylval.node = NewNode("COMMA", "none", yylineno);
 		return COMMA;
 	}
 "=" 	{
-		yylval.node = NewNode("ASSIGNOP", yylineno);
+		yylval.node = NewNode("ASSIGNOP", "none", yylineno);
 		return ASSIGNOP;
 	}
 ">"|"<"|">="|"<="|"=="|"!=" 	{
-		yylval.node = NewNode("RELOP", yylineno);
+		yylval.node = NewNode("RELOP", "none", yylineno);
 		return RELOP;
 	}
 "+"	{
-		yylval.node = NewNode("PLUS", yylineno);
+		yylval.node = NewNode("PLUS", "none", yylineno);
 		return PLUS;
 	}
 "-"	{
-		yylval.node = NewNode("MINUS", yylineno);
+		yylval.node = NewNode("MINUS", "none", yylineno);
 		return MINUS;
 	}
 "*" 	{
-		yylval.node = NewNode("STAR", yylineno);
+		yylval.node = NewNode("STAR", "none", yylineno);
 		return STAR;
 	}
 "/" 	{
-		yylval.node = NewNode("DIV", yylineno);
+		yylval.node = NewNode("DIV", "none", yylineno);
 		return DIV;
 	}
 "&&" 	{
-		yylval.node = NewNode("AND", yylineno);
+		yylval.node = NewNode("AND", "none", yylineno);
 		return AND;
 	}
 "||" 	{
-		yylval.node = NewNode("OR", yylineno);
+		yylval.node = NewNode("OR", "none", yylineno);
 		return OR;
 	}
 "." 	{
-		yylval.node = NewNode("DOT", yylineno);
+		yylval.node = NewNode("DOT", "none", yylineno);
 		return DOT;
 	}
 "!" 	{
-		yylval.node = NewNode("NOT", yylineno);
+		yylval.node = NewNode("NOT", "none", yylineno);
 		return NOT;
 	}
 
 "(" 	{
-		yylval.node = NewNode("LP", yylineno);
+		yylval.node = NewNode("LP", "none", yylineno);
 		return LP;
 	}
 ")" 	{
-		yylval.node = NewNode("RP", yylineno);
+		yylval.node = NewNode("RP", "none", yylineno);
 		return RP;
 	}
 "[" 	{
-		yylval.node = NewNode("LB", yylineno);
+		yylval.node = NewNode("LB", "none", yylineno);
 		return LB;
 	}
 "]" 	{
-		yylval.node = NewNode("RB", yylineno);
+		yylval.node = NewNode("RB", "none", yylineno);
 		return RB;
 	}
 "{" 	{
-		yylval.node = NewNode("LC", yylineno);
+		yylval.node = NewNode("LC", "none", yylineno);
 		return LC;
 	}
 "}" 	{
-		yylval.node = NewNode("RC", yylineno);
+		yylval.node = NewNode("RC", "none", yylineno);
 		return RC;
 	}
 
@@ -152,7 +152,7 @@ while 	{
 		}
 	}
 . 	{
-		printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
+		printf("Error type A at Line %d: Mysterious characters \'%s\'\n", "none", yylineno, yytext);
 	}
 %%
 
