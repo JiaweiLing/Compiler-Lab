@@ -1,6 +1,7 @@
 %{
 	#include"syntax.tab.h"
 	int yycolumn = 1;
+	int error_state = 0;
 	#define YY_USER_ACTION \
 	yylloc.first_line = yylloc.last_line = yylineno; \
 	yylloc.first_column = yycolumn; \
@@ -151,7 +152,8 @@ while 	{
 		}
 	}
 . 	{
-		printf("Error type A at Line %d: Mysterious characters \'%s\'\n", "none", yylineno, yytext);
+		error_state = 1;
+		printf("Error type A at Line %d: Mysterious characters \'%s\'\n", yylineno, yytext);
 	}
 %%
 

@@ -5,6 +5,7 @@
 	Tree *root_node;
 	int yylex();
 	int yyerror(char *msg);
+	extern int error_state;
 %}
 %locations
 %union {
@@ -84,12 +85,14 @@ DefList : Def DefList {$$ = AddChild("DefList", -1, 2, $1, $2);}
 	| /* Empty */ {$$ = NewNode("DefList", "", -1);}
 	;
 Def : Specifier DecList SEMI {$$ = AddChild("Def", -1, 3, $1, $2, $3);}
+	| error SEMI {error_state = 1;}
 	;
 DecList : Dec {$$ = AddChild("DecList", -1, 1, $1);}
 	| Dec COMMA DecList {$$ = AddChild("DecList", -1, 3, $1, $2, $3);}
 	;
 Dec : VarDec {$$ = AddChild("Dec", -1, 1, $1);}
 	| VarDec ASSIGNOP Exp {$$ = AddChild("Dec", -1, 3, $1, $2, $3);}
+	| VarDec ASSIGNOP error {error_state = 1;}
 	;
 Exp : Exp ASSIGNOP Exp {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
 	| Exp AND Exp {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
@@ -105,6 +108,7 @@ Exp : Exp ASSIGNOP Exp {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
 	| ID LP Args RP {$$ = AddChild("Exp", -1, 4, $1, $2, $3, $4);}
 	| ID LP RP {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
 	| Exp LB Exp RB {$$ = AddChild("Exp", -1, 4, $1, $2, $3, $4);}
+	| Exp LB error RB {error_state = 1;}
 	| Exp DOT ID {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
 	| ID {$$ = AddChild("Exp", -1, 1, $1);}
 	| INT {$$ = AddChild("Exp", -1, 1, $1);}
@@ -127,11 +131,11 @@ int main(int argc, char** argv)
 	
 	yyrestart(f);
 	yyparse();
-	PrintTree(root_node, 0);
+	if (!error_state) PrintTree(root_node, 0);
 
 }
 int yyerror(char * msg)
 {
-	fprintf(stderr, "error line,column %d, %d: %s\n",yylloc.first_line, yylloc.first_column, msg);
+	fprintf(stderr, "Error type B at Line %d: %s\n", yylloc.first_line, msg);
 }
 
