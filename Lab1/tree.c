@@ -11,24 +11,49 @@ Tree *CreateTree(char *name)
 	return root_node;
 }
 
-Tree *NewNode(char *name)
+Tree *NewNode(char *name, int line)
 {
 	Tree *p = (Tree *)malloc(sizeof(Tree));
 	p->name = name;
+	if (line != -1)
+	{
+		p->size = line;
+		p->temp = 1;
+		p->empty = 0;
+	}
+	else
+	if (line == -1)
+	{
+		p->temp = 0;
+		p->empty = 1;
+	}
 	p->child = NULL;
 	p->brother = NULL;
 	return p;
 }
-void AddChild(char *name, Tree *parent, int num, ...)
+Tree *AddChild(char *name, int line, int num, ...)
 {
 	va_list arg_tree;
 	Tree *p;
 	Tree *p_brother;
 	int i;
 	
-	va_start(arg_tree, num);
+	Tree *parent = (Tree *)malloc(sizeof(Tree));
+	parent->name = name;
+	
+	va_start(arg_tree, line);
+	
+	if (line != -1)
+	{
+		parent->size = line;
+		parent->empty = 0;
+	}
+	if (line == -1) parent->temp = 0;
+	
 	p = va_arg(arg_tree, Tree*);
+	
 	parent->child = p;
+	if (line == -1) parent->size = p->size;
 	p_brother = p;
 	
 	for (i = 1; i < num; i++)
@@ -37,17 +62,24 @@ void AddChild(char *name, Tree *parent, int num, ...)
 		p_brother->brother = p;
 		p_brother = p;
 	}
+	return parent;
 }
 
-void PrintTree(Tree *parent)
+void PrintTree(Tree *parent, int blank)
 {
-	printf("%s\n", parent->name);
-	if (parent->child != NULL) PrintTree(parent->child);
-	
-	Tree *brother = parent->brother;
-	while (brother != NULL)
+	int i;
+	if (parent->empty == 0 && parent->temp == 0)
 	{
-		PrintTree(brother);
-		brother = brother->brother;
+		for (i = 0; i < blank; i++) printf(" ");
+		printf("%s (%d)\n", parent->name, parent->size);
 	}
+	else
+	if (parent->empty == 0 && parent->temp == 1)
+	{
+		for (i = 0; i < blank; i++) printf(" ");
+		printf("%s\n", parent->name);
+	}
+	
+	if (parent->child != NULL) PrintTree(parent->child, blank + 2);
+	if (parent->brother != NULL) PrintTree(parent->brother, blank);
 }

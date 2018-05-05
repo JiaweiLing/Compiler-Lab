@@ -1,13 +1,13 @@
 typedef struct tree
 {
 	char* name;
-	int size;
+	int temp, empty, size;
 	struct Tree *child, *brother;
 }Tree;
 
 Tree *CreateTree(char *name);
-Tree *NewNode(char *name);
-void AddChild(char *name, Tree *parent, int num, ...);
-void PrintTree(Tree *parent);
+Tree *NewNode(char *name, int line);
+Tree *AddChild(char *name, int line, int num, ...);
+void PrintTree(Tree *parent, int blank);
 
 
