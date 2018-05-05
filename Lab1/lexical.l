@@ -20,7 +20,7 @@ Oct 0[0-7]*
 Hex 0[Xx][0-9a-fA-F]*
 Int {Dec}|{Oct}|{Hex}
 Float ({Number}+\.{Number}+)|({Number}*\.{Number}*[Ee][+-]?{Number}+)
-
+Comment [/][*][^*]*[*]+([^*/][^*]*[*]+)*[/] 
 
 %%
 {Space} {}
@@ -134,8 +134,7 @@ while 	{
 		yylval.node = NewNode("RC", "none", yylineno);
 		return RC;
 	}
-
-
+{Comment} {;}
 "//" 	{
 		char c = input();
 		while (c != '\n') c = input();
