@@ -43,6 +43,7 @@ ExtDefList : ExtDef ExtDefList {$$ = AddChild("ExtDefList", -1, 2, $1, $2);}
 ExtDef : Specifier ExtDecList SEMI {$$ = AddChild("ExtDef", -1, 3, $1, $2, $3);}
 	| Specifier SEMI {$$ = AddChild("ExtDef", -1, 2, $1, $2);}
 	| Specifier FunDec CompSt {$$ = AddChild("ExtDef", -1, 3, $1, $2, $3);}
+	| error SEMI {error_state = 1;}
 	;
 ExtDecList : VarDec {$$ = AddChild("ExtDecList", -1, 1, $1);}
 	| VarDec COMMA ExtDecList {$$ = AddChild("ExtDecList", -1, 3, $1, $2, $3);}
@@ -60,9 +61,11 @@ Tag : ID {$$ = AddChild("Tag", -1, 1, $1);}
 	;
 VarDec : ID {$$ = AddChild("VarDec", -1, 1, $1);}
 	| VarDec LB INT RB {$$ = AddChild("VarDec", -1, 4, $1, $2, $3, $4);}
+	| VarDec LB error SEMI {error_state = 1;}
 	;
 FunDec : ID LP VarList RP {$$ = AddChild("FunDec", -1, 4, $1, $2, $3, $4);}
 	| ID LP RP {$$ = AddChild("FunDec", -1, 3, $1, $2, $3);}
+	| error RP {error_state = 1;}
 	;
 VarList : ParamDec COMMA VarList {$$ = AddChild("VarList", -1, 3, $1, $2, $3);}
 	| ParamDec {$$ = AddChild("VarList", -1, 1, $1);}
@@ -70,6 +73,7 @@ VarList : ParamDec COMMA VarList {$$ = AddChild("VarList", -1, 3, $1, $2, $3);}
 ParamDec : Specifier VarDec {$$ = AddChild("ParamDec", -1, 2, $1, $2);}
 	;
 CompSt : LC DefList StmtList RC {$$ = AddChild("CompSt", -1, 4, $1, $2, $3, $4);}
+	| LC DefList error RC {error_state = 1;}
 	;
 StmtList : Stmt StmtList {$$ = AddChild("StmtList", -1, 2, $1, $2);}
 	| /* Empty */ {$$ = NewNode("StmtList", "", -1);}
@@ -79,13 +83,19 @@ Stmt : Exp SEMI {$$ = AddChild("Stmt", -1, 2, $1, $2);}
 	| RETURN Exp SEMI {$$ = AddChild("Stmt", -1, 3, $1, $2, $3);}
 	| IF LP Exp RP Stmt %prec LOWER_THAN_ELSE {$$ = AddChild("Stmt", -1, 5, $1, $2, $3, $4, $5);}
 	| IF LP Exp RP Stmt ELSE Stmt {$$ = AddChild("Stmt", -1, 7, $1, $2, $3, $4, $5, $6, $7);}
+	| IF LP Exp RP error ELSE Stmt {error_state = 1;}
 	| WHILE LP Exp RP Stmt {$$ = AddChild("Stmt", -1, 5, $1, $2, $3, $4, $5);}
+	| Exp LB error SEMI {error_state = 1;}
+	| IF LP error SEMI {error_state = 1;}
+	| LP Exp error SEMI {error_state = 1;}
+	| ID LP error SEMI {error_state = 1;}
+	| error SEMI {error_state = 1;}
 	;
 DefList : Def DefList {$$ = AddChild("DefList", -1, 2, $1, $2);}
 	| /* Empty */ {$$ = NewNode("DefList", "", -1);}
 	;
 Def : Specifier DecList SEMI {$$ = AddChild("Def", -1, 3, $1, $2, $3);}
-	| error SEMI {error_state = 1;}
+	| Specifier error SEMI {error_state = 1;}
 	;
 DecList : Dec {$$ = AddChild("DecList", -1, 1, $1);}
 	| Dec COMMA DecList {$$ = AddChild("DecList", -1, 3, $1, $2, $3);}
