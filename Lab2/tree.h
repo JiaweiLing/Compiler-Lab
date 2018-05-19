@@ -2,7 +2,7 @@ typedef struct tree
 {
 	char *name;
 	char value[1000];
-	int temp, empty, size;
+	int temp, empty, size, num;
 	struct Tree *child, *brother;
 }Tree;
 

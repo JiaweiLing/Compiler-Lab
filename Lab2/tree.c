@@ -15,6 +15,7 @@ Tree *NewNode(char *name, char *value, int line)
 {
 	Tree *p = (Tree *)malloc(sizeof(Tree));
 	p->name = name;
+	p->num = 1;
 	strcpy(p->value, value);
 	if (line != -1)
 	{
@@ -41,7 +42,7 @@ Tree *AddChild(char *name, int line, int num, ...)
 	
 	Tree *parent = (Tree *)malloc(sizeof(Tree));
 	parent->name = name;
-
+	parent->num = num;
 	va_start(arg_tree, line);
 	
 	if (line != -1)
