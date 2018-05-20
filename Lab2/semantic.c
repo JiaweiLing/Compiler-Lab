@@ -2,10 +2,10 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
-#include"semantic.h"
 #include<assert.h>
+#include"semantic.h"
 
-Type Specifier(Tree *node)
+Type Specifier(Tree* node)
 {
 	Type type = (Type)malloc(sizeof(struct TYPE));
 	if (strcmp(node->child->name, "TYPE") == 0)
@@ -31,7 +31,9 @@ Type Specifier(Tree *node)
 		}
 	}
 	else
-	if (strcmp(node->child->name, "StructSpecifier") != 0)
+	if (strcmp(node->child->name, "StructSpecifier") == 0)
+	{;}
+	else
 	{
 		printf("Specifier does not have other.\n");
 		return NULL;
@@ -95,12 +97,14 @@ void VarList(Tree* node, func_def_table func)
 			VarList(node->child->brother->brother, func);
 			return;
 			break;
+		default:
+			break;
 	}
 }
 
 func_def_table FunDec(Tree* node, Type type)
 {
-	func_def_table func = (func_def_table)malloc(sizeof(FunctionDefTableNode));
+	func_def_table func = (func_def_table)malloc(sizeof(struct FunctionDefTableNode));
 	func->return_type = type->Basic;
 	
 	strcpy(func->name, node->child->value);
