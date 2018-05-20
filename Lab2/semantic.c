@@ -2,14 +2,13 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
-#include"tree.h"
 #include"semantic.h"
+#include<assert.h>
 
-Type Specifier(tree* node)
+Type Specifier(Tree *node)
 {
-	if (node == NULL) return NULL;
 	Type type = (Type)malloc(sizeof(struct TYPE));
-	if (strcmp(node->child->value, "TYPE") == 0)
+	if (strcmp(node->child->name, "TYPE") == 0)
 	{
 		if (strcmp(node->child->value, "int") == 0)
 		{
@@ -38,13 +37,37 @@ Type Specifier(tree* node)
 		return NULL;
 	}
 }
-
-void ParamDec(tree* node, func_def_table func)
+void VarDec(Tree *node, Type type_pre, struct para* Para)
+{
+	if (Para->type == NULL)
+		Para->type = type_pre;
+	if (node->num == 1)
+	{
+		strcpy(Para->name, node->child->name);
+		return;
+	}
+	else
+	{
+		assert(node->num == 4);
+		Type type = (Type)malloc(sizeof(struct TYPE));
+		type->Kind = ARRAY;
+		type->Array.size = atoi(node->child->brother->brother->name);
+		type->Array.element = Para->type;
+		Para->type = type;
+		
+		VarDec(node->child, type_pre, Para);
+		return;
+	}
+}
+void ParamDec(Tree* node, func_def_table func)
 {
 	assert(strcmp(node->name, "ParamDec") == 0);
 	
 	struct para* Para = (struct para*)malloc(sizeof(struct para));
+	Para->type = NULL;
+	
 	Type type = Specifier(node->child);
+	VarDec(node->child->brother, type, Para);
 	
 	if (func->list_para == NULL)
 	{
@@ -58,7 +81,7 @@ void ParamDec(tree* node, func_def_table func)
 	}
 }
 
-void VarList(tree* node, func_def_table func)
+void VarList(Tree* node, func_def_table func)
 {
 	assert(strcmp(node->name, "VarList") == 0);
 	switch (node->num)
@@ -68,16 +91,19 @@ void VarList(tree* node, func_def_table func)
 			return;
 			break;
 		case 3:
+			ParamDec(node->child, func);
+			VarList(node->child->brother->brother, func);
+			return;
 			break;
 	}
 }
 
-func_def_table FunDec(tree* node, Type type)
+func_def_table FunDec(Tree* node, Type type)
 {
 	func_def_table func = (func_def_table)malloc(sizeof(FunctionDefTableNode));
 	func->return_type = type->Basic;
 	
-	strcpy(func->name, node->child->name);
+	strcpy(func->name, node->child->value);
 	if (strcmp(node->child->brother->brother->name, "RP") == 0)
 	{
 		func->num_para = 0;
@@ -96,7 +122,7 @@ func_def_table FunDec(tree* node, Type type)
 		return NULL;
 	}
 }
-void search(tree* node)
+void search(Tree* node, int blank)
 {
 	if (strcmp(node->name, "ExtDef") == 0)
 	{
@@ -104,18 +130,24 @@ void search(tree* node)
 		if (strcmp(node->child->brother->name, "FunDec") == 0)
 		{
 			if (strcmp(node->child->brother->brother->name, "Compst") == 0)
-				func_def_table = FunDec(node->child->brother, type);
+			{
+				func_def_table func = FunDec(node->child->brother, type);
+				int return_value = insert_function_def_table(func);
+				printf("%d\n", return_value);
+			}
+			
 		}
 	}
 	else
-	if (node->child != NULL) search(node->child);
-	if (node->brother != NULL) search(node->brother);
+	if (node->child != NULL) search(node->child, blank + 2);
+	if (node->brother != NULL) search(node->brother, blank);
 }
-void check_semantic(tree *root)
+void check_semantic(Tree *root)
 {
-	init_hash();
-	search(root);
 	printf("We are checking!\n");
+	init_hash();
+	search(root, 0);
+	printf("\n\n");
 }
 
 unsigned hash_table(char *name)
@@ -140,7 +172,24 @@ void init_hash()
 		StructDefHash[i] = NULL;
 	}
 }
-
+int insert_function_def_table(func_def_table node)
+{
+	printf("The function name is %s\n", node->name);
+	unsigned index = hash_table(node->name);
+	printf("%d\n", index);
+	if (FunctionDefHash[index] == NULL)
+	{
+		FunctionDefHash[index] = node;
+		node->next = NULL;
+		return 0;
+	}
+	else
+	{
+		node->next = FunctionDefHash[index];
+		FunctionDefHash[index] = node;
+		return 1;
+	}
+}
 void insert_symbol_table(symbol_table node)
 {
 	unsigned index = hash_table(node->name);

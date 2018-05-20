@@ -7,7 +7,8 @@ typedef struct FUNPARALIST* FunParaList;
 typedef struct SymbolTableNode* symbol_table;
 typedef struct FunctionDefTableNode* func_def_table;
 typedef struct FunctionDecTableNode* func_dec_table;
-
+typedef struct StructTableNode* struct_table;
+enum basic_type {INT_, FLOAT_};
 struct para
 {
 	char name[40];
@@ -27,16 +28,16 @@ struct FunctionDecTableNode
 	char name[100];
 	Type type;
 	func_dec_table *next;
-}
+};
 
 struct FunctionDefTableNode
 {
 	char name[100];
-	enum {INT_, FLOAT_} return_type;
+	enum basic_type return_type;
 	int num_para;
 	struct para* list_para;
 	func_def_table *next;
-}
+};
 
 struct SymbolTableNode
 {
@@ -49,10 +50,10 @@ struct SymbolTableNode
 
 struct TYPE
 {
-	enum {BASIC, ARRAY, STRUCTURE} Kind;
+	enum {NONE, BASIC, ARRAY, STRUCTURE} Kind;
 	union
 	{
-		enum {INT_, FLOAT_} Basic;
+		enum basic_type Basic;
 		struct
 		{
 			Type element;
@@ -82,10 +83,19 @@ symbol_table FunctionDefHash[hash_size];
 symbol_table FunctionDecHash[hash_size];
 symbol_table StructDefHash[hash_size];
 
-void check_semantic(tree *root);
+void check_semantic(Tree *root);
 unsigned hash(char *name);
 void init_hash();
 void insert_symbol_table(symbol_table node);
-#endif
+int insert_function_def_table(func_def_table node);
+
+void search(Tree* node, int blank);
+Type Specifier(Tree* node);
+void VarDec(Tree *node, Type type_pre, struct para* Para);
+void ParamDec(Tree* node, func_def_table func);
+void VarList(Tree* node, func_def_table func);
+func_def_table FunDec(Tree* node, Type type);
+
+
 
 

@@ -141,7 +141,11 @@ int main(int argc, char** argv)
 	
 	yyrestart(f);
 	yyparse();
-	if (!error_state) PrintTree(root_node, 0);
+	if (!error_state) 
+	{
+		check_semantic(root_node);
+		PrintTree(root_node, 0);
+	}
 
 }
 int yyerror(char * msg)

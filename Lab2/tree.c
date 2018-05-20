@@ -15,7 +15,7 @@ Tree *NewNode(char *name, char *value, int line)
 {
 	Tree *p = (Tree *)malloc(sizeof(Tree));
 	p->name = name;
-	p->num = 1;
+	p->num = 0;
 	strcpy(p->value, value);
 	if (line != -1)
 	{
