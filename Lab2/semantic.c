@@ -71,6 +71,7 @@ void ParamDec(Tree* node, func_def_table func)
 	Type type = Specifier(node->child);
 	VarDec(node->child->brother, type, Para);
 	
+	func->num_para++;
 	if (func->list_para == NULL)
 	{
 		func->list_para = Para;
@@ -106,6 +107,7 @@ func_def_table FunDec(Tree* node, Type type)
 {
 	func_def_table func = (func_def_table)malloc(sizeof(struct FunctionDefTableNode));
 	func->return_type = type->Basic;
+	func->num_para = 0;
 	
 	strcpy(func->name, node->child->value);
 	if (strcmp(node->child->brother->brother->name, "RP") == 0)
@@ -141,8 +143,14 @@ void search(Tree* node, int blank)
 			}
 			
 		}
+		else
+		if (strcmp(node->child->brother->name, "SEMI") == 0)
+		{}
+		else
+		if (strcmp(node->child->brother->name, "ExtDecList") == 0)
+		{}
 	}
-	else
+	
 	if (node->child != NULL) search(node->child, blank + 2);
 	if (node->brother != NULL) search(node->brother, blank);
 }
@@ -151,6 +159,7 @@ void check_semantic(Tree *root)
 	printf("We are checking!\n");
 	init_hash();
 	search(root, 0);
+	check_function_table();
 	printf("\n\n");
 }
 
@@ -194,7 +203,35 @@ int insert_function_def_table(func_def_table node)
 		return 1;
 	}
 }
-void insert_symbol_table(symbol_table node)
+void check_function_table()
+{
+	int i;
+	for (i = 0; i < hash_size; i++)
+	{
+		if (FunctionDefHash[i] != NULL)
+		{
+			func_def_table p = FunctionDefHash[i];
+			while (p != NULL)
+			{
+				printf("The function name is: %s\n", p->name);
+				printf("The return type is: %d\n", p->return_type);
+				printf("The number of parameters is: %d\n", p->num_para);
+				printf("The parameters are: \n");
+				struct para* t = p->list_para;
+				while (t != NULL)
+				{
+					printf("	The name of parameter is: %s\n", t->name);
+					Type type = t->type;
+					printf("	The type of parameter is %s\n", type->Kind);
+					t = t->next_para;
+				}
+				p = p->next;
+			}
+		}
+	}
+}
+
+int insert_symbol_table(symbol_table node)
 {
 	unsigned index = hash_table(node->name);
 	if (SymbolTableHash[index] == NULL)

@@ -86,7 +86,7 @@ symbol_table StructDefHash[hash_size];
 void check_semantic(Tree *root);
 unsigned hash(char *name);
 void init_hash();
-void insert_symbol_table(symbol_table node);
+int insert_symbol_table(symbol_table node);
 int insert_function_def_table(func_def_table node);
 
 void search(Tree* node, int blank);
