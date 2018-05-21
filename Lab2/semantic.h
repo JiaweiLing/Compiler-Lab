@@ -18,6 +18,7 @@ struct para
 
 struct StructTableNode
 {
+	enum {Definition, Declaration} Kind;
 	char *name;
 	Type type;
 	struct_table next;

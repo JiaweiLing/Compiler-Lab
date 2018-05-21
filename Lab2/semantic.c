@@ -32,7 +32,10 @@ Type Specifier(Tree* node)
 	}
 	else
 	if (strcmp(node->child->name, "StructSpecifier") == 0)
-	{;}
+	{
+		type->Kind = STRUCTURE;
+		return type;
+	}
 	else
 	{
 		printf("Specifier does not have other.\n");
@@ -128,13 +131,40 @@ func_def_table FunDec(Tree* node, Type type)
 		return NULL;
 	}
 }
+
+struct_table StructSpecifier(Type type, Tree* node)
+{
+	assert(strcmp(node->name, "StructSpecifier") == 0);
+	struct_table st = (struct_table)malloc(sizeof(struct StructTableNode));
+	st->type = type;
+	if (node->num != 2)
+	{
+		assert(node->num == 5);
+		st->Kind = Definition;
+		Tree* children = node->child->brother;
+		if (children->num != 0)
+		{
+			assert(children->num == 1);
+			strcpy(st->name, children->child->value);
+		}
+		children = node->brother->brother;
+	}
+	else
+	{
+		st->Kind = Declaration;
+		strcpy(st->name, node->child->brother->child->value);
+		return st; 
+	}
+	return st;
+}
 void search(Tree* node, int blank)
 {
 	if (strcmp(node->name, "ExtDef") == 0)
 	{
-		Type type = Specifier(node->child);
+		
 		if (strcmp(node->child->brother->name, "FunDec") == 0)
 		{
+			Type type = Specifier(node->child);
 			if (strcmp(node->child->brother->brother->name, "Compst") == 0)
 			{
 				func_def_table func = FunDec(node->child->brother, type);
@@ -145,7 +175,10 @@ void search(Tree* node, int blank)
 		}
 		else
 		if (strcmp(node->child->brother->name, "SEMI") == 0)
-		{}
+		{
+			Type type = Specifier(node->child);
+			struct_table st = StructSpecifier(type, node->child->child);
+		}
 		else
 		if (strcmp(node->child->brother->name, "ExtDecList") == 0)
 		{}
