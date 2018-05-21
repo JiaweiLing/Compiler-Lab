@@ -20,14 +20,14 @@ struct StructTableNode
 {
 	char *name;
 	Type type;
-	struct StructTableNode *next;
+	struct_table next;
 };
 
 struct FunctionDecTableNode
 {
 	char name[100];
 	Type type;
-	func_dec_table *next;
+	func_dec_table next;
 };
 
 struct FunctionDefTableNode
@@ -36,7 +36,7 @@ struct FunctionDefTableNode
 	enum basic_type return_type;
 	int num_para;
 	struct para* list_para;
-	func_def_table *next;
+	func_def_table next;
 };
 
 struct SymbolTableNode
@@ -79,15 +79,16 @@ struct FIELDLIST
 
 #define hash_size 0x3fff
 symbol_table SymbolTableHash[hash_size];
-symbol_table FunctionDefHash[hash_size];
-symbol_table FunctionDecHash[hash_size];
-symbol_table StructDefHash[hash_size];
+func_def_table FunctionDefHash[hash_size];
+func_def_table FunctionDecHash[hash_size];
+struct_table StructDefHash[hash_size];
 
 void check_semantic(Tree *root);
 unsigned hash(char *name);
 void init_hash();
 int insert_symbol_table(symbol_table node);
 int insert_function_def_table(func_def_table node);
+void check_function_table();
 
 void search(Tree* node, int blank);
 Type Specifier(Tree* node);

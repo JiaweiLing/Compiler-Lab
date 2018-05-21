@@ -53,7 +53,7 @@ void VarDec(Tree *node, Type type_pre, struct para* Para)
 		assert(node->num == 4);
 		Type type = (Type)malloc(sizeof(struct TYPE));
 		type->Kind = ARRAY;
-		type->Array.size = atoi(node->child->brother->brother->name);
+		type->Array.size = atoi(node->child->brother->brother->value);
 		type->Array.element = Para->type;
 		Para->type = type;
 		
@@ -216,14 +216,24 @@ void check_function_table()
 				printf("The function name is: %s\n", p->name);
 				printf("The return type is: %d\n", p->return_type);
 				printf("The number of parameters is: %d\n", p->num_para);
-				printf("The parameters are: \n");
-				struct para* t = p->list_para;
-				while (t != NULL)
+				if (p->num_para != 0)
 				{
-					printf("	The name of parameter is: %s\n", t->name);
-					Type type = t->type;
-					printf("	The type of parameter is %s\n", type->Kind);
-					t = t->next_para;
+					printf("The parameters are: \n");
+					struct para* t = p->list_para;
+					while (t != NULL)
+					{
+						printf("	The name of parameter is: %s\n", t->name);
+						Type type = t->type;
+						printf("	The type of parameter is %d\n", type->Kind);
+						while (type->Kind != BASIC)
+						{
+							printf("		The size of array is: %d\n", type->Array.size);
+							type = type->Array.element;
+						}
+						if (type->Kind == BASIC)
+							printf("		The basic type is %d\n", type->Kind);
+						t = t->next_para;
+					}
 				}
 				p = p->next;
 			}
