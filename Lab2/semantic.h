@@ -1,4 +1,5 @@
-#include "tree.h"
+#ifndef SEMANTIC_H_
+#define SEMANTIC_H_
 
 typedef struct TYPE* Type;
 typedef struct FIELDLIST* FieldList;
@@ -9,6 +10,7 @@ typedef struct FunctionDefTableNode* func_def_table;
 typedef struct FunctionDecTableNode* func_dec_table;
 typedef struct StructTableNode* struct_table;
 enum basic_type {INT_, FLOAT_};
+
 struct para
 {
 	char name[40];
@@ -48,6 +50,22 @@ struct SymbolTableNode
 	symbol_table next;
 	symbol_table scope_next;
 };
+
+typedef struct tree
+{
+	char *name;
+	char value[1000];
+	int temp, empty, size, num;
+	struct tree *child, *brother;
+	int struct_def;
+	Type type;
+	struct para* Para;
+	struct_table st;
+}Tree;
+Tree *CreateTree(char *name);
+Tree *NewNode(char *name, char *value, int line);
+Tree *AddChild(char *name, int line, int num, ...);
+void PrintTree(Tree *parent, int blank);
 
 struct TYPE
 {
@@ -93,11 +111,14 @@ void check_function_table();
 
 void search(Tree* node, int blank);
 Type Specifier(Tree* node);
-void VarDec(Tree *node, Type type_pre, struct para* Para);
+void VarDec(Tree *node);
 void ParamDec(Tree* node, func_def_table func);
 void VarList(Tree* node, func_def_table func);
 func_def_table FunDec(Tree* node, Type type);
+struct_table StructSpecifier(Type type, Tree* node);
+void DefList(Tree* node);
+void Def(Tree* node);
+void Compst(Tree* node);
+void DecList(Type type, Tree* node);
 
-
-
-
+#endif

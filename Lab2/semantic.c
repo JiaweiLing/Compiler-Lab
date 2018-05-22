@@ -42,13 +42,13 @@ Type Specifier(Tree* node)
 		return NULL;
 	}
 }
-void VarDec(Tree *node, Type type_pre, struct para* Para)
+void VarDec(Tree *node)
 {
-	if (Para->type == NULL)
-		Para->type = type_pre;
+	if (node->Para->type == NULL)
+		node->Para->type = node->type;
 	if (node->num == 1)
 	{
-		strcpy(Para->name, node->child->name);
+		strcpy(node->Para->name, node->child->name);
 		return;
 	}
 	else
@@ -57,10 +57,13 @@ void VarDec(Tree *node, Type type_pre, struct para* Para)
 		Type type = (Type)malloc(sizeof(struct TYPE));
 		type->Kind = ARRAY;
 		type->Array.size = atoi(node->child->brother->brother->value);
-		type->Array.element = Para->type;
-		Para->type = type;
-		
-		VarDec(node->child, type_pre, Para);
+		type->Array.element = node->Para->type;
+		node->Para->type = type;
+		node->child->type = node->type;
+		node->child->Para = node->Para;
+		VarDec(node->child);
+		node->type = node->child->type;
+		node->Para = node->child->Para;
 		return;
 	}
 }
@@ -72,18 +75,21 @@ void ParamDec(Tree* node, func_def_table func)
 	Para->type = NULL;
 	
 	Type type = Specifier(node->child);
-	VarDec(node->child->brother, type, Para);
+	node->child->type = type;
+	node->child->Para = Para;
+	VarDec(node->child);
 	
+	struct para* p = node->child->Para;
 	func->num_para++;
 	if (func->list_para == NULL)
 	{
-		func->list_para = Para;
-		Para->next_para = NULL;
+		func->list_para = p;
+		p->next_para = NULL;
 	}
 	else
 	{
-		Para->next_para = func->list_para;
-		func->list_para = Para;
+		p->next_para = func->list_para;
+		func->list_para = p;
 	}
 }
 
@@ -131,7 +137,44 @@ func_def_table FunDec(Tree* node, Type type)
 		return NULL;
 	}
 }
-
+void DecList(Type type, Tree* node)
+{
+	
+}
+void Def(Tree* node)
+{
+	if (node->struct_def)
+	{
+		node->child->struct_def = node->struct_def;
+		node->child->st = node->st;
+		Type type = (Type)malloc(sizeof(struct TYPE));
+		type = Specifier(node->child);
+	}
+	else
+	{
+		Type type = (Type)malloc(sizeof(struct TYPE));
+		type = Specifier(node->child);
+		DecList(type, node->child->brother);
+	}
+}
+void DefList(Tree* node)
+{
+	if (!node->num) return;
+	assert(node->num == 2);
+	if (node->struct_def)
+	{
+		Def(node);
+		node->child->brother->struct_def = 1;
+		node->child->brother->st = node->st;
+		DefList(node->child);
+		node->st = node->child->st;
+	}
+	else
+	{
+		Def(node->child);
+		DefList(node->child->brother);
+	}
+}
 struct_table StructSpecifier(Type type, Tree* node)
 {
 	assert(strcmp(node->name, "StructSpecifier") == 0);
@@ -147,15 +190,24 @@ struct_table StructSpecifier(Type type, Tree* node)
 			assert(children->num == 1);
 			strcpy(st->name, children->child->value);
 		}
-		children = node->brother->brother;
+		children = children->brother->brother;
+		children->st = st;
+		children->struct_def = 1;
+		DefList(children);
+		return children->st;
 	}
 	else
 	{
 		st->Kind = Declaration;
+		printf("The struct name is %s\n", node->child->brother->child->value);
 		strcpy(st->name, node->child->brother->child->value);
 		return st; 
 	}
 	return st;
+}
+void Compst(Tree* node)
+{
+	DefList(node->child->brother);
 }
 void search(Tree* node, int blank)
 {
@@ -165,12 +217,10 @@ void search(Tree* node, int blank)
 		if (strcmp(node->child->brother->name, "FunDec") == 0)
 		{
 			Type type = Specifier(node->child);
-			if (strcmp(node->child->brother->brother->name, "Compst") == 0)
-			{
-				func_def_table func = FunDec(node->child->brother, type);
-				int return_value = insert_function_def_table(func);
-				printf("%d\n", return_value);
-			}
+			func_def_table func = FunDec(node->child->brother, type);
+			int return_val = insert_function_def_table(func);
+			printf("%d\n", return_val);
+			Compst(node->child->brother->brother);
 			
 		}
 		else
