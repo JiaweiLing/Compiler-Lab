@@ -60,6 +60,7 @@ typedef struct tree
 	int temp, empty, size, num;
 	struct tree *child, *brother;
 	enum {global_var, func_dec, func_body, str_def} kind;
+	int first_verdec;
 	char struct_name[100];
 	int scope;
 	
@@ -67,6 +68,7 @@ typedef struct tree
 	struct para* Para;
 	struct_table strt;
 	symbol_table symt;
+	func_def_table func;
 }Tree;
 Tree *CreateTree(char *name);
 Tree *NewNode(char *name, char *value, int line);

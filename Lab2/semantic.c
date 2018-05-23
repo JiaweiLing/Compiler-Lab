@@ -48,37 +48,93 @@ void VarDec(Tree *node)
 		node->Para->type = node->type;
 	if (node->num == 1)
 	{
-		if (node->kind == global_var)
+		if (node->kind == global_var || node->kind == func_body)
 		{
-			symbol_table syt = (symbol_table)malloc(sizeof(struct SymbolTableNode));
-			syt->next = NULL;
-			if (node->type->Kind == BASIC)
+			//node->symt->next = NULL;
+			if (node->first_verdec)
 			{
-				Type type = (Type)malloc(sizeof(struct TYPE));
-				type->Kind = node->type->Kind;
-				syt->type = type;
+				//Type type = (Type)malloc(sizeof(struct TYPE));
+				//type->Kind = node->type->Kind;
+				//node->symt->type = type;
+				//trcpy(node->symt->name, node->child->value);
+				//node->symt->line = node->child->size;
+				//unsigned value = insert_symbol_table(node->symt);
+				//printf("%d\n", value);
+				symbol_table syt = (symbol_table)malloc(sizeof(struct SymbolTableNode));
 				strcpy(syt->name, node->child->name);
+				if (node->type->Kind == STRUCTURE)
+					strcpy(syt->struct_name, node->struct_name);
+				syt->type = node->type;
 				syt->line = node->child->size;
 				unsigned value = insert_symbol_table(syt);
 				printf("%d\n", value);
 			}
 			else
-			if (node->type->Kind == STRUCTURE)
-				strcpy(syt->struct_name, node->struct_name);
+			{
+				//strcpy(node->symt->struct_name, node->struct_name);
+				//Type type = (Type)malloc(sizeof(struct TYPE));
+				//type->Kind = node->type->kind;
+				//node->symt->type = type;
+				strcpy(node->symt->name, node->child->value);
+				node->symt->line = node->child->size;
+				unsigned value = insert_symbol_table(node->symt);
+				printf("%d\n", value);
+			}
 		}
 		else
 		if (node->kind == func_dec)
 		{}
 		else
-		if (node->kind == func_body)
+		
+		if (node->kind == str_def)
 		{}
-		else
-		{
-			printf("VarDec node type error!\n");
-		}
+		//else
+		//{
+		//	printf("VarDec node type error!\n");
+		//}
 	}
 	else
 	{
+		if (node->kind == global_var || node->kind == func_body)
+		{
+			if (node->first_verdec)
+			{
+				symbol_table syt = (symbol_table)malloc(sizeof(struct SymbolTableNode));
+				syt->type = node->type;
+				if (node->type->Kind == STRUCTURE)
+					strcpy(syt->struct_name, node->struct_name);
+				Type type = (Type)malloc(sizeof(struct TYPE));
+				type->Kind = ARRAY;
+				type->Array.size = atoi(node->child->brother->brother->value);
+				type->Array.element = syt->type;
+				syt->type = type;
+				Tree* children = node->child;
+				children->symt = syt;
+				children->first_verdec = 0;
+				children->kind = node->kind;
+				VarDec(children);
+			}
+			else
+			{
+				Type type = (Type)malloc(sizeof(struct TYPE));
+				type->Kind = ARRAY;
+				type->Array.size = atoi(node->child->brother->brother->value);
+				type->Array.element = node->symt->type;
+				node->symt->type = type;
+				Tree* children = node->child;
+				children->symt = node->symt;
+				children->first_verdec = 0;
+				children->kind = node->kind;
+				VarDec(children);
+			}
+		}
+		else
+		if (node->kind == func_dec)
+		{}
+		else
+		if (node->kind == str_def)
+		{}
+	
 	/*
 		assert(node->num == 4);
 		Type type = (Type)malloc(sizeof(struct TYPE));
@@ -268,6 +324,7 @@ void ExtDecList(Tree* node)
 	children->scope = node->scope;
 	children->type = node->type;
 	strcpy(children->struct_name, node->struct_name);
+	children->first_verdec = 1;
 	VarDec(children);
 	if (node->num == 1) return;
 	else
@@ -470,11 +527,28 @@ void check_symbol_table()
 			symbol_table st = SymbolTableHash[i];
 			while (st != NULL)
 			{
-				if (st->type->Kind == BASIC)
-					printf("symbol_table type: %d ", st->type->Basic);
+				//if (st->type->Kind == BASIC)
+				//	printf("symbol_table type: %d ", st->type->Basic);
+				//else
+				//if (st->type->Kind == STRUCTURE)
+				//{
+				//	printf("symbol table type: struct %s ", st->struct_name);
+				//}
+				//printf("symbol_table name is %s\n", st->name);
+				//st = st->next;
+				printf("symbol table name: %s\n", st->name);
+				Type type = st->type;
+				while (type->Kind != BASIC && type->Kind != STRUCTURE)
+				{
+					printf("size: %d\n", type->Array.size);
+					type = type->Array.element;
+				}
+				if (type->Kind == BASIC)
+					printf("type: %d\n", type->Basic);
 				else
-				if (st->type->Kind == STRUCTURE){}
-				printf("symbol_table name is %s\n", st->name);
+					printf("type: %d\n", type->Kind);
+				if (type->Kind == STRUCTURE)
+					printf("struct name: %s\n", st->struct_name);
 				st = st->next;
 			}
 		}
