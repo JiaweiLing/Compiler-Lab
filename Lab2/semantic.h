@@ -44,9 +44,11 @@ struct FunctionDefTableNode
 
 struct SymbolTableNode
 {
-	char *name;
-	Type type;
+	char name[100];
 	int scope;
+	int line;
+	Type type;
+	char struct_name[100];
 	symbol_table next;
 	symbol_table scope_next;
 };
@@ -57,10 +59,14 @@ typedef struct tree
 	char value[1000];
 	int temp, empty, size, num;
 	struct tree *child, *brother;
-	int struct_def;
+	enum {global_var, func_dec, func_body, str_def} kind;
+	char struct_name[100];
+	int scope;
+	
 	Type type;
 	struct para* Para;
-	struct_table st;
+	struct_table strt;
+	symbol_table symt;
 }Tree;
 Tree *CreateTree(char *name);
 Tree *NewNode(char *name, char *value, int line);
@@ -103,22 +109,29 @@ func_def_table FunctionDecHash[hash_size];
 struct_table StructDefHash[hash_size];
 
 void check_semantic(Tree *root);
+
 unsigned hash(char *name);
 void init_hash();
+
 int insert_symbol_table(symbol_table node);
+void check_symbol_table();
+
 int insert_function_def_table(func_def_table node);
 void check_function_table();
 
 void search(Tree* node, int blank);
+
 Type Specifier(Tree* node);
 void VarDec(Tree *node);
 void ParamDec(Tree* node, func_def_table func);
 void VarList(Tree* node, func_def_table func);
 func_def_table FunDec(Tree* node, Type type);
-struct_table StructSpecifier(Type type, Tree* node);
+void StructSpecifier(Tree* node);
 void DefList(Tree* node);
 void Def(Tree* node);
 void Compst(Tree* node);
+void Dec(Type type, Tree* node);
 void DecList(Type type, Tree* node);
+void ExtDecList(Tree *node);
 
 #endif

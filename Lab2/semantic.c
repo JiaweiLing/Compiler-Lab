@@ -48,11 +48,38 @@ void VarDec(Tree *node)
 		node->Para->type = node->type;
 	if (node->num == 1)
 	{
-		strcpy(node->Para->name, node->child->name);
-		return;
+		if (node->kind == global_var)
+		{
+			symbol_table syt = (symbol_table)malloc(sizeof(struct SymbolTableNode));
+			syt->next = NULL;
+			if (node->type->Kind == BASIC)
+			{
+				Type type = (Type)malloc(sizeof(struct TYPE));
+				type->Kind = node->type->Kind;
+				syt->type = type;
+				strcpy(syt->name, node->child->name);
+				syt->line = node->child->size;
+				unsigned value = insert_symbol_table(syt);
+				printf("%d\n", value);
+			}
+			else
+			if (node->type->Kind == STRUCTURE)
+				strcpy(syt->struct_name, node->struct_name);
+		}
+		else
+		if (node->kind == func_dec)
+		{}
+		else
+		if (node->kind == func_body)
+		{}
+		else
+		{
+			printf("VarDec node type error!\n");
+		}
 	}
 	else
 	{
+	/*
 		assert(node->num == 4);
 		Type type = (Type)malloc(sizeof(struct TYPE));
 		type->Kind = ARRAY;
@@ -65,6 +92,7 @@ void VarDec(Tree *node)
 		node->type = node->child->type;
 		node->Para = node->child->Para;
 		return;
+	*/
 	}
 }
 void ParamDec(Tree* node, func_def_table func)
@@ -75,11 +103,11 @@ void ParamDec(Tree* node, func_def_table func)
 	Para->type = NULL;
 	
 	Type type = Specifier(node->child);
-	node->child->type = type;
-	node->child->Para = Para;
-	VarDec(node->child);
+	node->child->brother->type = type;
+	node->child->brother->Para = Para;
+	VarDec(node->child->brother);
 	
-	struct para* p = node->child->Para;
+	struct para* p = node->child->brother->Para;
 	func->num_para++;
 	if (func->list_para == NULL)
 	{
@@ -119,6 +147,7 @@ func_def_table FunDec(Tree* node, Type type)
 	func->num_para = 0;
 	
 	strcpy(func->name, node->child->value);
+	
 	if (strcmp(node->child->brother->brother->name, "RP") == 0)
 	{
 		func->num_para = 0;
@@ -137,18 +166,39 @@ func_def_table FunDec(Tree* node, Type type)
 		return NULL;
 	}
 }
+void Dec(Type type, Tree* node)
+{
+	if (node->num == 1)
+	{
+		node->child->type = type;
+		VarDec(node->child);
+	}
+	else
+	{}
+}
+/*
 void DecList(Type type, Tree* node)
 {
-	
+	if (node->num)
+	{
+		if (node->struct_def) node->child->struct_def = 1;
+		Dec(type, node->child);
+	}
+	else
+	{
+		Dec(type, node->child);
+		DecList(type, node->child->brother->brother);
+	}
 }
 void Def(Tree* node)
 {
 	if (node->struct_def)
 	{
 		node->child->struct_def = node->struct_def;
-		node->child->st = node->st;
+		node->child->strt = node->strt;
 		Type type = (Type)malloc(sizeof(struct TYPE));
 		type = Specifier(node->child);
+		DecList(type, node->child);
 	}
 	else
 	{
@@ -165,9 +215,9 @@ void DefList(Tree* node)
 	{
 		Def(node);
 		node->child->brother->struct_def = 1;
-		node->child->brother->st = node->st;
+		node->child->brother->strt = node->strt;
 		DefList(node->child);
-		node->st = node->child->st;
+		node->strt = node->child->strt;
 	}
 	else
 	{
@@ -175,13 +225,15 @@ void DefList(Tree* node)
 		DefList(node->child->brother);
 	}
 }
-struct_table StructSpecifier(Type type, Tree* node)
+*/
+void StructSpecifier(Tree* node)
 {
 	assert(strcmp(node->name, "StructSpecifier") == 0);
-	struct_table st = (struct_table)malloc(sizeof(struct StructTableNode));
-	st->type = type;
+	//struct_table st = (struct_table)malloc(sizeof(struct StructTableNode));
+	//st->type = type;
 	if (node->num != 2)
 	{
+	/*
 		assert(node->num == 5);
 		st->Kind = Definition;
 		Tree* children = node->child->brother;
@@ -191,47 +243,106 @@ struct_table StructSpecifier(Type type, Tree* node)
 			strcpy(st->name, children->child->value);
 		}
 		children = children->brother->brother;
-		children->st = st;
+		children->strt = st;
 		children->struct_def = 1;
 		DefList(children);
-		return children->st;
+		return children->strt;
+	*/
 	}
 	else
 	{
-		st->Kind = Declaration;
 		printf("The struct name is %s\n", node->child->brother->child->value);
-		strcpy(st->name, node->child->brother->child->value);
-		return st; 
+		strcpy(node->struct_name, node->child->brother->child->value);
+		return; 
 	}
-	return st;
+	
 }
 void Compst(Tree* node)
 {
-	DefList(node->child->brother);
+	//DefList(node->child->brother);
 }
+void ExtDecList(Tree* node)
+{
+	Tree* children = node->child;
+	children->kind = node->kind;
+	children->scope = node->scope;
+	children->type = node->type;
+	strcpy(children->struct_name, node->struct_name);
+	VarDec(children);
+	if (node->num == 1) return;
+	else
+	{
+		children = children->brother->brother;
+		children->kind = node->kind;
+		children->scope = node->scope;
+		children->type = node->type;
+		strcpy(children->struct_name, node->struct_name);
+		ExtDecList(children);
+		return;
+	}
+}
+int scope = 0;
 void search(Tree* node, int blank)
 {
 	if (strcmp(node->name, "ExtDef") == 0)
 	{
-		
 		if (strcmp(node->child->brother->name, "FunDec") == 0)
 		{
-			Type type = Specifier(node->child);
-			func_def_table func = FunDec(node->child->brother, type);
-			int return_val = insert_function_def_table(func);
-			printf("%d\n", return_val);
-			Compst(node->child->brother->brother);
+			node->kind = func_dec;
+			node->scope = scope;
+			scope++;
+			Tree* children;
+			children = node->child;
+			children->kind = node->kind;
+			children->scope = node->scope;
+			Type type = Specifier(children);
+			node->type = type;
+			children = children->brother;
+			children->kind = node->kind;
+			children->scope = node->scope;
+			children->type = node->type;
+			children = children->brother;
+			children->kind = func_body;
+			children->scope = node->scope;
 			
 		}
 		else
 		if (strcmp(node->child->brother->name, "SEMI") == 0)
 		{
-			Type type = Specifier(node->child);
-			struct_table st = StructSpecifier(type, node->child->child);
+			node->kind = str_def;
+			node->scope = scope;
+			scope++;
+			Tree* children;
+			children->kind = node->kind;
+			children->scope = node->scope;
 		}
 		else
 		if (strcmp(node->child->brother->name, "ExtDecList") == 0)
-		{}
+		{
+			node->kind = global_var;
+			node->scope = scope;
+			scope++;
+			Tree* children;
+			children = node->child;
+			children->kind = node->kind;
+			children->scope = node->scope;
+			Type type = Specifier(children);
+			if (type->Kind == STRUCTURE)
+			{
+				Tree* grandchildren = children->child;
+				grandchildren->kind = node->kind;
+				grandchildren->scope = node->scope;
+				StructSpecifier(grandchildren);
+				strcpy(node->struct_name, grandchildren->struct_name);
+			}
+			node->type = type;
+			children = children->brother;
+			children->kind = node->kind;
+			children->scope = node->scope;
+			strcpy(children->struct_name, node->struct_name);
+			children->type = node->type;
+			ExtDecList(children);
+		}
 	}
 	
 	if (node->child != NULL) search(node->child, blank + 2);
@@ -242,7 +353,7 @@ void check_semantic(Tree *root)
 	printf("We are checking!\n");
 	init_hash();
 	search(root, 0);
-	check_function_table();
+	check_symbol_table();
 	printf("\n\n");
 }
 
@@ -327,6 +438,16 @@ void check_function_table()
 int insert_symbol_table(symbol_table node)
 {
 	unsigned index = hash_table(node->name);
+	symbol_table st = SymbolTableHash[index];
+	while (st != NULL)
+	{
+		if (strcmp(node->name, st->name) == 0)
+		{
+			printf("Error type 3 at Line %d: Redefined variable \"%s\"\n", node->line, node->name);
+			return -1;
+		}
+		st = st->next;
+	}
 	if (SymbolTableHash[index] == NULL)
 	{
 		SymbolTableHash[index] = node;
@@ -339,4 +460,22 @@ int insert_symbol_table(symbol_table node)
 		SymbolTableHash[index] = node;
 		return 1;
 	}
+}
+void check_symbol_table()
+{
+	int i;
+	for (i = 0; i < hash_size; i++)
+		if (SymbolTableHash[i] != NULL)
+		{
+			symbol_table st = SymbolTableHash[i];
+			while (st != NULL)
+			{
+				if (st->type->Kind == BASIC)
+					printf("symbol_table type: %d ", st->type->Basic);
+				else
+				if (st->type->Kind == STRUCTURE){}
+				printf("symbol_table name is %s\n", st->name);
+				st = st->next;
+			}
+		}
 }
