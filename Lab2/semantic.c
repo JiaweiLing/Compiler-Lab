@@ -83,7 +83,22 @@ void VarDec(Tree *node)
 		}
 		else
 		if (node->kind == func_dec)
-		{}
+		{
+			if (node->first_verdec)
+			{
+				struct para* Para = (struct para*)malloc(sizeof(struct para));
+				strcpy(Para->name, node->child->value);
+				if (node->type->Kind == STRUCTURE)
+					strcpy(Para->struct_name, node->struct_name);
+				Para->type = node->type;
+				node->Para = Para;
+			}
+			else
+			{
+				strcpy(node->Para->name, node->child->name);
+				return;
+			}
+		}
 		else
 		
 		if (node->kind == str_def)
@@ -130,7 +145,40 @@ void VarDec(Tree *node)
 		}
 		else
 		if (node->kind == func_dec)
-		{}
+		{
+			if (node->first_verdec)
+			{
+				struct para* Para = (struct para*)malloc(sizeof(struct para));
+				Para->type = node->type;
+				if (node->type->Kind == STRUCTURE)
+					strcpy(Para->struct_name, node->struct_name);
+				Type type = (Type)malloc(sizeof(struct TYPE));
+				type->Kind = ARRAY;
+				type->Array.size = atoi(node->child->brother->brother->value);
+				type->Array.element = Para->type;
+				Para->type = type;
+				Tree* children = node->child;
+				children->Para = Para;
+				children->first_verdec = 0;
+				children->kind = node->kind;
+				VarDec(children);
+				node->Para = children->Para;
+			}
+			else
+			{
+				Type type = (Type)malloc(sizeof(struct TYPE));
+				type->Kind = ARRAY;
+				type->Array.size = atoi(node->child->brother->brother->value);
+				type->Array.element = node->Para->type;
+				node->Para->type = type;
+				Tree* children = node->child;
+				children->Para = node->Para;
+				children->first_verdec = 0;
+				children->kind = node->kind;
+				VarDec(children);
+				node->Para = children->Para;
+			}
+		}
 		else
 		if (node->kind == str_def)
 		{}
@@ -151,14 +199,15 @@ void VarDec(Tree *node)
 	*/
 	}
 }
-void ParamDec(Tree* node, func_def_table func)
+void ParamDec(Tree* node)
 {
 	assert(strcmp(node->name, "ParamDec") == 0);
-	
+	/*
 	struct para* Para = (struct para*)malloc(sizeof(struct para));
 	Para->type = NULL;
-	
+	*/
 	Type type = Specifier(node->child);
+	/*
 	node->child->brother->type = type;
 	node->child->brother->Para = Para;
 	VarDec(node->child->brother);
@@ -175,20 +224,54 @@ void ParamDec(Tree* node, func_def_table func)
 		p->next_para = func->list_para;
 		func->list_para = p;
 	}
+	*/
+	Tree* children = node->child;
+	if (type->Kind == STRUCTURE)
+	{
+		Tree* grandchildren = children->child;
+		grandchildren->kind = node->kind;
+		grandchildren->scope = node->scope;
+		StructSpecifier(grandchildren);
+		strcpy(node->struct_name, grandchildren->struct_name);
+	}
+	children = children->brother;
+	children->type = type;
+	children->kind = node->kind;
+	children->first_verdec = 1;
+	strcpy(children->struct_name, node->struct_name);
+	VarDec(children);
+	struct para* p = node->child->brother->Para;
+	node->func->num_para++;
+	if (node->func->list_para == NULL)
+	{
+		node->func->list_para = p;
+		p->next_para = NULL;
+	}
+	else
+	{
+		p->next_para = node->func->list_para;
+		node->func->list_para = p;
+	}
 }
 
-void VarList(Tree* node, func_def_table func)
+void VarList(Tree* node)
 {
 	assert(strcmp(node->name, "VarList") == 0);
+	Tree* children = node->child;
+	children->func = node->func;
+	children->kind = node->kind;
+	ParamDec(children);
+	node->func = children->func;
 	switch (node->num)
 	{
 		case 1:
-			ParamDec(node->child, func);
 			return;
 			break;
 		case 3:
-			ParamDec(node->child, func);
-			VarList(node->child->brother->brother, func);
+			children = children->brother->brother;
+			children->func = node->func;
+			children->kind = node->kind;
+			VarList(children);
 			return;
 			break;
 		default:
@@ -196,10 +279,10 @@ void VarList(Tree* node, func_def_table func)
 	}
 }
 
-func_def_table FunDec(Tree* node, Type type)
+void FunDec(Tree* node)
 {
 	func_def_table func = (func_def_table)malloc(sizeof(struct FunctionDefTableNode));
-	func->return_type = type->Basic;
+	func->return_type = node->type->Basic;
 	func->num_para = 0;
 	
 	strcpy(func->name, node->child->value);
@@ -208,18 +291,28 @@ func_def_table FunDec(Tree* node, Type type)
 	{
 		func->num_para = 0;
 		func->list_para = NULL;
-		return func;
+		func->line = node->child->brother->brother->size;
+		unsigned value = insert_function_def_table(func);
+		printf("%d\n", value);
 	}
 	else
 	if (strcmp(node->child->brother->brother->name, "VarList") == 0)
 	{
-		VarList(node->child->brother->brother, func);
-		return func;
+		VarList(node->child->brother->brother);
+		func->num_para = 0;
+		func->list_para = NULL;
+		Tree* children = node->child->brother->brother;
+		func->line = children->size;
+		children->kind = node->kind;
+		children->func = func;
+		VarList(children);
+		unsigned value = insert_function_def_table(func);
+		printf("%d\n", value);
 	}
 	else
 	{
 		printf("FunDec does not have other.\n");
-		return NULL;
+		return;
 	}
 }
 void Dec(Type type, Tree* node)
@@ -353,11 +446,14 @@ void search(Tree* node, int blank)
 			children->kind = node->kind;
 			children->scope = node->scope;
 			Type type = Specifier(children);
-			node->type = type;
+			//node->type = type;
 			children = children->brother;
-			children->kind = node->kind;
+			//children->kind = node->kind;
+			children->type = type;
+			children->kind = func_dec;
 			children->scope = node->scope;
-			children->type = node->type;
+			//children->type = node->type;
+			FunDec(children);
 			children = children->brother;
 			children->kind = func_body;
 			children->scope = node->scope;
@@ -410,6 +506,7 @@ void check_semantic(Tree *root)
 	printf("We are checking!\n");
 	init_hash();
 	search(root, 0);
+	check_function_table();
 	check_symbol_table();
 	printf("\n\n");
 }
@@ -441,6 +538,16 @@ int insert_function_def_table(func_def_table node)
 	printf("The function name is %s\n", node->name);
 	unsigned index = hash_table(node->name);
 	printf("%d\n", index);
+	func_def_table fdt = FunctionDefHash[index];
+	while (fdt != NULL)
+	{
+		if (strcmp(fdt->name, node->name) == 0)
+		{
+			printf("Error type 4 at Line %d: Redefined function \"%s\"\n", node->line, node->name);
+			return -1;
+		}
+		fdt = fdt->next;
+	}
 	if (FunctionDefHash[index] == NULL)
 	{
 		FunctionDefHash[index] = node;
@@ -476,13 +583,15 @@ void check_function_table()
 						printf("	The name of parameter is: %s\n", t->name);
 						Type type = t->type;
 						printf("	The type of parameter is %d\n", type->Kind);
-						while (type->Kind != BASIC)
+						while (type->Kind != BASIC && type->Kind != STRUCTURE)
 						{
 							printf("		The size of array is: %d\n", type->Array.size);
 							type = type->Array.element;
 						}
 						if (type->Kind == BASIC)
-							printf("		The basic type is %d\n", type->Kind);
+							printf("		The basic type is %d\n", type->Basic);
+						if (type->Kind == STRUCTURE)
+							printf("		The struct type is %s\n", t->struct_name);
 						t = t->next_para;
 					}
 				}

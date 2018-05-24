@@ -15,6 +15,7 @@ struct para
 {
 	char name[40];
 	Type type;
+	char struct_name[100];
 	struct para* next_para;
 };
 
@@ -38,6 +39,7 @@ struct FunctionDefTableNode
 	char name[100];
 	enum basic_type return_type;
 	int num_para;
+	int line;
 	struct para* list_para;
 	func_def_table next;
 };
@@ -125,9 +127,8 @@ void search(Tree* node, int blank);
 
 Type Specifier(Tree* node);
 void VarDec(Tree *node);
-void ParamDec(Tree* node, func_def_table func);
-void VarList(Tree* node, func_def_table func);
-func_def_table FunDec(Tree* node, Type type);
+void ParamDec(Tree* node);
+void VarList(Tree* node);
 void StructSpecifier(Tree* node);
 void DefList(Tree* node);
 void Def(Tree* node);
@@ -135,5 +136,6 @@ void Compst(Tree* node);
 void Dec(Type type, Tree* node);
 void DecList(Type type, Tree* node);
 void ExtDecList(Tree *node);
+void FunDec(Tree* node);
 
 #endif
