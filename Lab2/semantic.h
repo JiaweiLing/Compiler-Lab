@@ -10,7 +10,7 @@ typedef struct FunctionDefTableNode* func_def_table;
 typedef struct FunctionDecTableNode* func_dec_table;
 typedef struct StructTableNode* struct_table;
 enum basic_type {INT_, FLOAT_};
-
+enum var_kind {global_var, func_dec, func_body, str_def};
 struct para
 {
 	char name[40];
@@ -61,7 +61,7 @@ typedef struct tree
 	char value[1000];
 	int temp, empty, size, num;
 	struct tree *child, *brother;
-	enum {global_var, func_dec, func_body, str_def} kind;
+	enum var_kind kind;
 	int first_verdec;
 	char struct_name[100];
 	int scope;
@@ -106,36 +106,8 @@ struct FIELDLIST
 	FieldList next;
 };
 
-#define hash_size 0x3fff
-symbol_table SymbolTableHash[hash_size];
-func_def_table FunctionDefHash[hash_size];
-func_def_table FunctionDecHash[hash_size];
-struct_table StructDefHash[hash_size];
-
 void check_semantic(Tree *root);
 
-unsigned hash(char *name);
-void init_hash();
 
-int insert_symbol_table(symbol_table node);
-void check_symbol_table();
-
-int insert_function_def_table(func_def_table node);
-void check_function_table();
-
-void search(Tree* node, int blank);
-
-Type Specifier(Tree* node);
-void VarDec(Tree *node);
-void ParamDec(Tree* node);
-void VarList(Tree* node);
-void StructSpecifier(Tree* node);
-void DefList(Tree* node);
-void Def(Tree* node);
-void Compst(Tree* node);
-void Dec(Type type, Tree* node);
-void DecList(Type type, Tree* node);
-void ExtDecList(Tree *node);
-void FunDec(Tree* node);
 
 #endif

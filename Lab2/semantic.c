@@ -4,7 +4,31 @@
 #include<string.h>
 #include<assert.h>
 #include"semantic.h"
+#include"hash_table.h"
 
+
+
+void search(Tree* node, int blank);
+
+Type Specifier(Tree* node);
+void VarDec(Tree *node);
+void ParamDec(Tree* node);
+void VarList(Tree* node);
+void StructSpecifier(Tree* node);
+void DefList(Tree* node);
+void Def(Tree* node);
+void Compst(Tree* node);
+void Dec(Type type, Tree* node);
+void DecList(Type type, Tree* node);
+void ExtDecList(Tree *node);
+void FunDec(Tree* node);
+
+Type set_kind(Type type, enum basic_type basic)
+{
+	type->Kind = BASIC;
+	type->Basic = basic;
+	return type;
+}
 Type Specifier(Tree* node)
 {
 	Type type = (Type)malloc(sizeof(struct TYPE));
@@ -12,15 +36,13 @@ Type Specifier(Tree* node)
 	{
 		if (strcmp(node->child->value, "int") == 0)
 		{
-			type->Kind = BASIC;
-			type->Basic = INT_;
+			type = set_kind(type, INT_);
 			return type;
 		}
 		else
 		if (strcmp(node->child->value, "float") == 0)
 		{
-			type->Kind = BASIC;
-			type->Basic = FLOAT_;
+			type = set_kind(type, FLOAT_);
 			return type;
 		}
 		else
@@ -42,6 +64,22 @@ Type Specifier(Tree* node)
 		return NULL;
 	}
 }
+symbol_table set_st_STRUCTURE(symbol_table syt, Tree* node)
+{
+	strcpy(syt->name, node->child->name);
+	if (node->type->Kind == STRUCTURE)
+		strcpy(syt->struct_name, node->struct_name);
+	syt->type = node->type;
+	syt->line = node->child->size;
+	return syt;
+}
+void VarDec_st_Children(Tree* node, symbol_table st, enum var_kind kind)
+{
+	node->symt = st;
+	node->first_verdec = 0;
+	node->kind = kind;
+	VarDec(node);
+}
 void VarDec(Tree *node)
 {
 	if (node->Para->type == NULL)
@@ -61,11 +99,8 @@ void VarDec(Tree *node)
 				//unsigned value = insert_symbol_table(node->symt);
 				//printf("%d\n", value);
 				symbol_table syt = (symbol_table)malloc(sizeof(struct SymbolTableNode));
-				strcpy(syt->name, node->child->name);
-				if (node->type->Kind == STRUCTURE)
-					strcpy(syt->struct_name, node->struct_name);
-				syt->type = node->type;
-				syt->line = node->child->size;
+				
+				syt = set_st_STRUCTURE(syt, node);
 				unsigned value = insert_symbol_table(syt);
 				printf("%d\n", value);
 			}
@@ -124,10 +159,7 @@ void VarDec(Tree *node)
 				type->Array.element = syt->type;
 				syt->type = type;
 				Tree* children = node->child;
-				children->symt = syt;
-				children->first_verdec = 0;
-				children->kind = node->kind;
-				VarDec(children);
+				VarDec_st_Children(children, syt, node->kind);
 			}
 			else
 			{
@@ -137,10 +169,9 @@ void VarDec(Tree *node)
 				type->Array.element = node->symt->type;
 				node->symt->type = type;
 				Tree* children = node->child;
-				children->symt = node->symt;
-				children->first_verdec = 0;
-				children->kind = node->kind;
-				VarDec(children);
+				
+				VarDec_st_Children(children, node->symt, node->kind);
+
 			}
 		}
 		else
@@ -432,6 +463,13 @@ void ExtDecList(Tree* node)
 	}
 }
 int scope = 0;
+Tree* set_children(Tree* children, Tree* node)
+{
+	children = node->child;
+	children->kind = node->kind;
+	children->scope = node->scope;
+	return children;
+}
 void search(Tree* node, int blank)
 {
 	if (strcmp(node->name, "ExtDef") == 0)
@@ -442,9 +480,8 @@ void search(Tree* node, int blank)
 			node->scope = scope;
 			scope++;
 			Tree* children;
-			children = node->child;
-			children->kind = node->kind;
-			children->scope = node->scope;
+			
+			children = set_children(children, node);
 			Type type = Specifier(children);
 			//node->type = type;
 			children = children->brother;
@@ -476,9 +513,7 @@ void search(Tree* node, int blank)
 			node->scope = scope;
 			scope++;
 			Tree* children;
-			children = node->child;
-			children->kind = node->kind;
-			children->scope = node->scope;
+			children = set_children(children, node);
 			Type type = Specifier(children);
 			if (type->Kind == STRUCTURE)
 			{
