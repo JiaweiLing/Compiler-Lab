@@ -81,6 +81,7 @@ void FunDec(Tree* node);
 void Exp(Tree* node);
 void Stmt(Tree* node);
 void StmtList(Tree* node);
+int Args(Tree* node, int num);
 
 Type set_kind(Type type, enum basic_type basic)
 {
@@ -228,10 +229,7 @@ void VarDec(Tree *node)
 				type->Array.element = syt->type;
 				syt->type = type;
 				Tree* children = node->child;
-				children->first_verdec = 0;
-				children->kind = node->kind;
-				children->symt = syt;
-				VarDec(children);
+				VarDec_st_Children(children, syt, node->kind);
 			}
 			else
 			{
@@ -241,11 +239,7 @@ void VarDec(Tree *node)
 				type->Array.element = node->symt->type;
 				node->symt->type = type;
 				Tree* children = node->child;
-				children->first_verdec = 0;
-				children->kind = node->kind;
-				children->symt = node->symt;
-				VarDec(children);
-				
+				VarDec_st_Children(children, node->symt, node->kind);
 
 			}
 		}
@@ -399,7 +393,18 @@ void VarList(Tree* node)
 		return;
 	}
 }
-
+void deal_with_value(unsigned value, func_def_table func)
+{
+	if (value != -1)
+	{
+		symbol_table st = (symbol_table)malloc(sizeof(struct SymbolTableNode));
+		strcpy(st->name, func->name);
+		Type type = (Type)malloc(sizeof(struct TYPE));
+		type->Kind = 4;
+		st->type = type;
+		insert_symbol_table(st);
+	}
+}
 void FunDec(Tree* node)
 {
 	func_def_table func = (func_def_table)malloc(sizeof(struct FunctionDefTableNode));
@@ -414,7 +419,7 @@ void FunDec(Tree* node)
 		func->list_para = NULL;
 		func->line = node->child->brother->brother->size;
 		unsigned value = insert_function_def_table(func);
-		//printf("%d\n", value);
+		deal_with_value(value, func);
 	}
 	else
 	if (strcmp(node->child->brother->brother->name, "VarList") == 0)
@@ -428,13 +433,10 @@ void FunDec(Tree* node)
 		children->kind = node->kind;
 		VarList(children);
 		unsigned value = insert_function_def_table(children->func);
-		//printf("%d\n", value);
+		deal_with_value(value, func);
 	}
 	else
-	{
-		//printf("FunDec does not have other.\n");
 		return;
-	}
 }
 Tree *set_Dec_children(Tree* children, Tree* node)
 {
@@ -491,8 +493,21 @@ void Dec(Tree* node)
 			if (node->num == 1) return;
 			else
 			{
-				children = children->brother->brother;
+				//children = children->brother->brother;
+				//children->kind = node->kind;
+				symbol_table st = search_symbol(children->child);
+				children = node->child->brother->brother;
 				children->kind = node->kind;
+				Exp(children);
+				if (children->exp == 2)
+					if (st->type->Kind != 1 ||
+					(st->type->Kind == 1 && st->type->Basic != 1))
+						errorprint(5, children->size, "");
+				else
+				if (children->exp == 3)
+					if (st->type->Kind != 1 ||
+					(st->type->Kind == 1 && st->type->Basic != 2))
+						errorprint(5, children->size, "");
 			}
 			break;
 		default:
@@ -690,7 +705,6 @@ void StructSpecifier(Tree* node)
 	}
 	else
 	{
-		//printf("The struct name is %s\n", node->child->brother->child->value);
 		strcpy(node->struct_name, node->child->brother->child->value);
 		return; 
 	}
@@ -717,19 +731,51 @@ void Exp(Tree *node)
 		case 1:
 			if (strcmp(children->name, "ID") == 0)
 			{
-				if (search_symbol(children) == -1)
-					errorprint(1, children->size, children->value);
-				node->type = children->type;
-				strcpy(node->struct_name, children->struct_name);
-				node->exp = 1;
+				//if (search_symbol(children) == -1)
+					//errorprint(1, children->size, children->value);
+				//node->type = children->type;
+				//strcpy(node->struct_name, children->struct_name);
+				//node->exp = 1;
+				symbol_table st = search_symbol(children);
+				if (st != NULL)
+				{
+					if (st->type->Kind == 1)
+					{
+						if (st->type->Basic == 1)
+							node->exp = 2;
+						else
+						if (st->type->Basic == 2)
+							node->exp = 3;
+					}
+					else
+					if (st->type->Kind == 2)
+						node->exp = 4;
+					else
+					if (st->type->Kind == 3)
+					{
+						node->exp = 5;
+						strcpy(node->struct_name, st->struct_name);
+					}
+					else
+					if (st->type->Kind == 4)
+						node->exp = 6;
+					else
+						node->exp = 0;
+				}
 			}
 			else
 			{
 				if (strcmp(children->name, "INT") == 0)
+				{
 					node->exp = 2;
+					node->judge_num = 1;
+				}
 				else
 				if (strcmp(children->name, "FLOAT") == 0)
+				{
 					node->exp = 3;
+					node->judge_num = 1;
+				}
 			}
 			break;
 		case 3:
@@ -737,19 +783,16 @@ void Exp(Tree *node)
 			if (strcmp(children->name, "ASSIGNOP") == 0)
 			{
 				Exp(node->child);
-				if (node->child->exp != 1) 
+				if (node->child->judge_num) 
 					errorprint(6, node->child->size, "");
-				Exp(node->child->brother);
-				if (node->child->exp == 1)
+				assert(strcmp(node->child->brother->brother->name, "Exp") == 0);
+				Exp(node->child->brother->brother);
+				if (node->child->exp == 0)
 				{
-					if (node->child->type->Basic == 1)
-						if (node->child->brother->exp != 2)
-							errorprint(5, node->child->size, "");
-					else
-					if (node->child->type->Basic == 2)
-						if (node->child->brother->exp != 3)
-							errorprint(5, node->child->size, "");
+					if (node->child->exp != node->child->brother->brother->exp)
+						errorprint(5, node->child->size, "");
 				}
+				node->exp = node->child->exp;
 			}
 			else
 			if (strcmp(children->name, "STAR") == 0 ||
@@ -758,21 +801,127 @@ void Exp(Tree *node)
 			    strcmp(children->name, "MINUS") == 0)
 			{
 				Exp(node->child);
-				Exp(node->child->brother);
-				if (node->child->exp == 1 || node->child->brother->exp == 1
-				|| node->child->exp != node->child->brother->exp)
+				Exp(node->child->brother->brother);
+				if (node->child->exp != node->child->brother->brother->exp)
 					errorprint(7, node->child->size, "");
+				else
+					if (node->child->exp == 2 || node->child->exp == 3)
+						node->exp = node->child->exp;
+			}
+			else
+			if (strcmp(children->name, "RELOP") == 0)
+			{
+				Exp(node->child);
+				Exp(node->child->brother->brother);
+				if (node->child->exp != node->child->brother->brother->exp)
+					errorprint(7, node->child->size, "");
+				else
+					node->exp = node->child->exp;
+			}
+			else
+			if (strcmp(children->name, "DOT") == 0)
+			{
+				Exp(node->child);
+				if (node->child->exp != 5)
+					errorprint(13, node->child->size, "");
+			
+				else
+				{
+					struct_table st = search_struct(node->child);
+					FieldList fieldlist = st->fieldlist;
+					while (fieldlist != NULL)
+					{
+						if (strcmp(fieldlist->name, node->child->brother->brother->value) == 0) break;
+						fieldlist = fieldlist->next;
+					}
+					if (fieldlist == NULL)
+						errorprint(14, node->child->brother->brother->size, node->child->brother->brother->value);
+				}
 			}
 			break;
 		case 4:
 			if (strcmp(children->name, "ID") == 0)
 			{
-				if (!search_func(children))
-					errorprint(2, children->size, children->value);
+				symbol_table st = search_symbol(node->child);
+				func_def_table func = search_func(node->child);
+				if (st == NULL)
+					errorprint(2, node->child->size, node->child->value);
+				else
+				if (st->type->Kind != 4)
+					errorprint(11, node->child->size, node->child->value);
+				else
+				{
+					children = node->child->brother->brother;
+					assert(strcmp(children->name, "Args") == 0);
+					children->args = NULL;
+					int numArgs = Args(children, 0);
+					if (numArgs != func->num_para)
+						errorprint(9, children->size, func->name);
+					else
+					{
+						struct TypeArgs* TA = children->args;
+						struct para* Para = func->list_para;
+						while (Para != NULL)
+						{
+							if (TA->exp == 2)
+								if (Para->type->Kind != 1 ||
+								(Para->type->Kind == 1 && Para->type->Basic != 1))
+									errorprint(9, children->size, func->name);
+							else
+							if (TA->exp == 3)
+								if (Para->type->Kind != 1 ||
+								(Para->type->Kind == 1 && Para->type->Basic != 2))
+									errorprint(9, children->size, func->name);
+							TA = TA->next;
+							Para = Para->next_para;
+						} 
+					}
+				}
+			}
+			else
+			{
+				Exp(node->child);
+				if (node->child->exp != 2)
+					errorprint(10, node->child->size, "");
+				else
+				{
+					Exp(node->child->brother->brother);
+					if (node->child->brother->brother->exp != 2)
+						errorprint(12, node->child->brother->brother->size, "");
+				}
 			}
 			break;
 		default:
 			break;
+	}
+}
+int Args(Tree* node, int num)
+{
+	Exp(node->child);
+	num++;
+
+	struct TypeArgs* TA = (struct TypeArgs*)malloc(sizeof(struct TypeArgs));
+	TA->exp = node->child->exp;
+
+	if(node->args == NULL)
+	{
+		node->args = TA;
+		TA->next = NULL;
+	}
+	else
+	{
+		TA->next = node->args;
+		node->args = TA;
+	}
+
+	if(node->num == 1) return num;
+	else
+	{
+		Tree* children = node->child->brother->brother;
+		children->args = node->args;
+		num = Args(children, num);
+		node->args = children->args;
+		return num;
 	}
 }
 void Stmt(Tree* node)
@@ -790,12 +939,24 @@ void Stmt(Tree* node)
 			children = children->brother;
 			children->kind = node->kind;
 			Exp(children);
-			if (node->return_type->Basic != node->type->Basic)
-				errorprint(8, children->size, "");
+			if (children->exp == 2)
+			{
+				if (node->return_type->Kind != 1 || (node->return_type->Kind == 1 && node->return_type->Basic != 1))
+					errorprint(8, children->size, "");
+			}
+			else
+			if (children->exp == 3)
+			{
+				if (node->return_type->Kind != 1 || (node->return_type->Kind == 1 && node->return_type->Basic != 2))
+					errorprint(8, children->size, "");
+			}	
 			break;
 		case 5:
+			if (strcmp(children->name, "IF") == 0) Exp(children);
+			else assert(strcmp(children->name, "WHILE") == 0);
 			break;
 		case 7:
+			
 			break;
 	}
 }

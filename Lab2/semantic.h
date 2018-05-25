@@ -11,7 +11,14 @@ typedef struct FunctionDecTableNode* func_dec_table;
 typedef struct StructTableNode* struct_table;
 enum basic_type {INT_ = 1, FLOAT_ = 2};
 enum var_kind {global_var = 1, func_dec = 2, func_body = 3, str_def = 4};
-enum exp_type {VAR__ = 1, INT__ = 2, FLOAT__ = 3};
+enum exp_type {NONE__ = 0, VAR__ = 1, INT__ = 2, FLOAT__ = 3, ARRAY__ = 4, STRUCTURE__ = 5, FUNC__ = 6};
+
+struct TypeArgs
+{
+	enum exp_type exp;
+	struct TypeArgs* next;
+};
+
 struct para
 {
 	char name[40];
@@ -69,9 +76,10 @@ typedef struct tree
 	int first_verdec;
 	char struct_name[100];
 	int scope;
-	
+	int judge_num;
 	Type type, return_type;
 	struct para* Para;
+	struct TypeArgs* args;
 	struct_table strt;
 	symbol_table symt;
 	func_def_table func;
@@ -84,7 +92,7 @@ void PrintTree(Tree *parent, int blank);
 
 struct TYPE
 {
-	enum {NONE = 0, BASIC = 1, ARRAY = 2, STRUCTURE = 3} Kind;
+	enum {NONE = 0, BASIC = 1, ARRAY = 2, STRUCTURE = 3, FUNCTION = 4} Kind;
 	union
 	{
 		enum basic_type Basic;

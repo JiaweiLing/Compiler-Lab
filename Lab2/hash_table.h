@@ -13,13 +13,10 @@ unsigned hash(char *name);
 void init_hash();
 
 int insert_symbol_table(symbol_table node);
-void check_symbol_table();
-
 int insert_function_def_table(func_def_table node);
-void check_function_table();
-
 int insert_struct_table(struct_table st);
 
-int search_symbol(Tree* node);
-int search_func(Tree* node);
+symbol_table search_symbol(Tree* node);
+func_def_table search_func(Tree* node);
+struct_table search_struct(Tree* node);
 #endif

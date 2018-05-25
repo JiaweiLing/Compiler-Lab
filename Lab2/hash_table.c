@@ -83,38 +83,6 @@ int insert_symbol_table(symbol_table node)
 	}
 }
 
-
-int search_symbol(Tree* node)
-{
-	unsigned index = hash_table(node->value);
-	symbol_table st = SymbolTableHash[index];
-	
-	while (st != NULL)
-	{
-		if (strcmp(node->value, st->name) == 0)
-		{
-			strcpy(node->struct_name, st->struct_name);
-			node->type = st->type;
-			return 1;
-		}
-		st = st->next;
-	}
-	return -1;
-}
-
-int search_func(Tree* node)
-{
-	unsigned index = hash_table(node->value);
-	func_def_table fdt = FunctionDefHash[index];
-	while (fdt != NULL)
-	{
-		if (strcmp(node->value, fdt->name) == 0)
-			return 1;
-		fdt = fdt->next;
-	}
-	return -1;
-}
-
 int insert_struct_table(struct_table st)
 {
 	unsigned index = hash_table(st->name);
@@ -140,4 +108,60 @@ int insert_struct_table(struct_table st)
 		StructDefHash[index] = st;
 		return 1;
 	}
+}
+
+symbol_table search_symbol(Tree* node)
+{
+	unsigned index = hash_table(node->value);
+	symbol_table symt;
+	symbol_table st = SymbolTableHash[index];
+	
+	while (st != NULL)
+	{
+		if (strcmp(node->value, st->name) == 0)
+		{
+			//strcpy(node->struct_name, st->struct_name);
+			//node->type = st->type;
+			//return 1;
+			symt = st;
+			return symt;
+		}
+		st = st->next;
+	}
+	return NULL;
+}
+
+func_def_table search_func(Tree* node)
+{
+	func_def_table ft;
+	unsigned index = hash_table(node->value);
+	func_def_table fdt = FunctionDefHash[index];
+	while (fdt != NULL)
+	{
+		if (strcmp(node->value, fdt->name) == 0)
+		{
+			//return 1;
+			ft = fdt;
+			return ft;
+		}
+		fdt = fdt->next;
+	}
+	return NULL;
+}
+
+struct_table search_struct(Tree* node)
+{
+	unsigned index = hash_table(node->struct_name);
+	struct_table strt;
+	struct_table st = StructDefHash[index];
+	while (st != NULL)
+	{
+		if (strcmp(node->struct_name, st->name) == 0)
+		{
+			strt = st;
+			return strt;
+		}
+		st = st->next;
+	}
+	return NULL;
 }
