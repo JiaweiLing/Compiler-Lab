@@ -30,9 +30,7 @@ void init_hash()
 }
 int insert_function_def_table(func_def_table node)
 {
-	//printf("The function name is %s\n", node->name);
 	unsigned index = hash_table(node->name);
-	//printf("%d\n", index);
 	func_def_table fdt = FunctionDefHash[index];
 	while (fdt != NULL)
 	{
@@ -56,45 +54,7 @@ int insert_function_def_table(func_def_table node)
 		return 1;
 	}
 }
-void check_function_table()
-{
-	int i;
-	for (i = 0; i < hash_size; i++)
-	{
-		if (FunctionDefHash[i] != NULL)
-		{
-			func_def_table p = FunctionDefHash[i];
-			while (p != NULL)
-			{
-				printf("The function name is: %s\n", p->name);
-				printf("The return type is: %d\n", p->return_type);
-				printf("The number of parameters is: %d\n", p->num_para);
-				if (p->num_para != 0)
-				{
-					printf("The parameters are: \n");
-					struct para* t = p->list_para;
-					while (t != NULL)
-					{
-						printf("	The name of parameter is: %s\n", t->name);
-						Type type = t->type;
-						printf("	The type of parameter is %d\n", type->Kind);
-						while (type->Kind != BASIC && type->Kind != STRUCTURE)
-						{
-							printf("		The size of array is: %d\n", type->Array.size);
-							type = type->Array.element;
-						}
-						if (type->Kind == BASIC)
-							printf("		The basic type is %d\n", type->Basic);
-						if (type->Kind == STRUCTURE)
-							printf("		The struct type is %s\n", t->struct_name);
-						t = t->next_para;
-					}
-				}
-				p = p->next;
-			}
-		}
-	}
-}
+
 
 int insert_symbol_table(symbol_table node)
 {
@@ -122,38 +82,62 @@ int insert_symbol_table(symbol_table node)
 		return 1;
 	}
 }
-void check_symbol_table()
+
+
+int search_symbol(Tree* node)
 {
-	int i;
-	for (i = 0; i < hash_size; i++)
-		if (SymbolTableHash[i] != NULL)
+	unsigned index = hash_table(node->value);
+	symbol_table st = SymbolTableHash[index];
+	
+	while (st != NULL)
+	{
+		if (strcmp(node->value, st->name) == 0)
 		{
-			symbol_table st = SymbolTableHash[i];
-			while (st != NULL)
-			{
-				//if (st->type->Kind == BASIC)
-				//	printf("symbol_table type: %d ", st->type->Basic);
-				//else
-				//if (st->type->Kind == STRUCTURE)
-				//{
-				//	printf("symbol table type: struct %s ", st->struct_name);
-				//}
-				//printf("symbol_table name is %s\n", st->name);
-				//st = st->next;
-				printf("symbol table name: %s\n", st->name);
-				Type type = st->type;
-				while (type->Kind != BASIC && type->Kind != STRUCTURE)
-				{
-					printf("size: %d\n", type->Array.size);
-					type = type->Array.element;
-				}
-				if (type->Kind == BASIC)
-					printf("type: %d\n", type->Basic);
-				else
-					printf("type: %d\n", type->Kind);
-				if (type->Kind == STRUCTURE)
-					printf("struct name: %s\n", st->struct_name);
-				st = st->next;
-			}
+			strcpy(node->struct_name, st->struct_name);
+			node->type = st->type;
+			return 1;
 		}
+		st = st->next;
+	}
+	return -1;
+}
+
+int search_func(Tree* node)
+{
+	unsigned index = hash_table(node->value);
+	func_def_table fdt = FunctionDefHash[index];
+	while (fdt != NULL)
+	{
+		if (strcmp(node->value, fdt->name) == 0)
+			return 1;
+		fdt = fdt->next;
+	}
+	return -1;
+}
+
+int insert_struct_table(struct_table st)
+{
+	unsigned index = hash_table(st->name);
+	struct_table s_t = StructDefHash[index];
+	while (s_t != NULL)
+	{
+		if (strcmp(st->name, s_t->name) == 0)
+		{
+			errorprint(16, st->line, st->name);
+			return -1;
+		}
+		s_t = s_t->next;
+	}
+	if (StructDefHash[index] == NULL)
+	{
+		StructDefHash[index] = st;
+		st->next = NULL;
+		return 0;
+	}
+	else
+	{
+		st->next = StructDefHash[index];
+		StructDefHash[index] = st;
+		return 1;
+	}
 }

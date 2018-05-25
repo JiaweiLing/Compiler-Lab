@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 	if (!error_state) 
 	{
 		check_semantic(root_node);
-		PrintTree(root_node, 0);
+		//PrintTree(root_node, 0);
 	}
 
 }

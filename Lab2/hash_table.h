@@ -18,4 +18,8 @@ void check_symbol_table();
 int insert_function_def_table(func_def_table node);
 void check_function_table();
 
+int insert_struct_table(struct_table st);
+
+int search_symbol(Tree* node);
+int search_func(Tree* node);
 #endif
