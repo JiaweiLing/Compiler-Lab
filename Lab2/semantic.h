@@ -9,8 +9,9 @@ typedef struct SymbolTableNode* symbol_table;
 typedef struct FunctionDefTableNode* func_def_table;
 typedef struct FunctionDecTableNode* func_dec_table;
 typedef struct StructTableNode* struct_table;
-enum basic_type {INT_, FLOAT_};
-enum var_kind {global_var, func_dec, func_body, str_def};
+enum basic_type {INT_ = 1, FLOAT_ = 2};
+enum var_kind {global_var = 1, func_dec = 2, func_body = 3, str_def = 4};
+enum exp_type {VAR__ = 1, INT__ = 2, FLOAT__ = 3};
 struct para
 {
 	char name[40];
@@ -21,9 +22,11 @@ struct para
 
 struct StructTableNode
 {
-	enum {Definition, Declaration} Kind;
+	enum {Definition = 1, Declaration = 2} Kind;
 	char *name;
 	Type type;
+	int line;
+	FieldList fieldlist;
 	struct_table next;
 };
 
@@ -62,15 +65,17 @@ typedef struct tree
 	int temp, empty, size, num;
 	struct tree *child, *brother;
 	enum var_kind kind;
+	enum exp_type exp;
 	int first_verdec;
 	char struct_name[100];
 	int scope;
 	
-	Type type;
+	Type type, return_type;
 	struct para* Para;
 	struct_table strt;
 	symbol_table symt;
 	func_def_table func;
+	FieldList fieldlist;
 }Tree;
 Tree *CreateTree(char *name);
 Tree *NewNode(char *name, char *value, int line);
@@ -79,7 +84,7 @@ void PrintTree(Tree *parent, int blank);
 
 struct TYPE
 {
-	enum {NONE, BASIC, ARRAY, STRUCTURE} Kind;
+	enum {NONE = 0, BASIC = 1, ARRAY = 2, STRUCTURE = 3} Kind;
 	union
 	{
 		enum basic_type Basic;
@@ -88,13 +93,14 @@ struct TYPE
 			Type element;
 			int size;
 		} Array;
-		FieldList structure;
+		FieldList fieldlist;
 	};
 };
 
 struct FUNPARALIST
 {
 	char *name;
+	char struct_name[100];
 	Type type;
 	FunParaList next;
 };
@@ -102,12 +108,12 @@ struct FUNPARALIST
 struct FIELDLIST
 {
 	char *name;
+	char struct_name[100];
 	Type type;
 	FieldList next;
 };
 
 void check_semantic(Tree *root);
-
-
+void errorprint(int errorcode, int line, char* name);
 
 #endif
