@@ -376,9 +376,8 @@ void ParamDec(Tree* node)
 	if (type->Kind == 3)
 	{
 		Tree* grandchildren = children->child;
-		//grandchildren = deal_with_grandchildren(grandchildren, node);
-		grandchildren->kind = node->kind;
-		grandchildren->scope = node->scope;
+		grandchildren = deal_with_grandchildren(grandchildren, node);
+
 		StructSpecifier(grandchildren);
 		strcpy(node->struct_name, grandchildren->struct_name);
 	}
@@ -466,9 +465,7 @@ void Dec(Tree* node)
 			//node->child->type = type;
 			//VarDec(node->child);
 			//children = node->child;
-			children->kind = node->kind;
-			children->type = node->type;
-			strcpy(children->struct_name, node->struct_name);
+			children = deal_with_children(children, node);
 			children->strt = node->strt;
 			children->first_verdec = 1;
 			VarDec(children);
@@ -514,9 +511,7 @@ void Dec(Tree* node)
 			break;
 		case 3:
 			//return;
-			children->kind = node->kind;
-			children->type = node->type;
-			strcpy(children->struct_name, node->struct_name);
+			children = deal_with_children(children, node);
 			children->first_verdec = 1;
 			VarDec(children);
 			if (node->num == 1) return;
@@ -550,9 +545,7 @@ void Dec(Tree* node)
 void DecList(Tree* node)
 {
 	Tree* children = node->child;
-	children->kind = node->kind;
-	children->type = node->type;
-	strcpy(children->struct_name, node->struct_name);
+	children = deal_with_children(children, node);
 	children->strt = node->strt;
 	children->scope = node->scope;
 	Dec(children);
@@ -581,9 +574,7 @@ void DecList(Tree* node)
 		//Dec(type, node->child);
 		//DecList(type, node->child->brother->brother);
 		children = children->brother->brother;
-		children->kind = node->kind;
-		children->type = node->type;
-		strcpy(children->struct_name, node->struct_name);
+		children = deal_with_children(children, node);
 		children->strt = node->strt;
 		children->scope = node->scope;
 		DecList(children);
@@ -618,18 +609,15 @@ void Def(Tree* node)
 			if (type->Kind == 3)
 			{
 				//grandchildren = children->child;
-				//grandchildren = deal_with_grandchildren(grandchildren, node);
-				grandchildren->kind = node->kind;
-				grandchildren->scope = node->scope;
+				grandchildren = deal_with_grandchildren(grandchildren, node);
+				
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 				
 			}
 			node->type = type;
 			children = children->brother;
-			children->kind = node->kind;
-			children->type = node->type;
-			strcpy(children->struct_name, node->struct_name);
+			children = deal_with_children(children, node);
 			children->strt = node->strt;
 
 			DecList(children);
@@ -640,17 +628,14 @@ void Def(Tree* node)
 			if (type->Kind == 3)
 			{
 				//grandchildren = children->child;
-				grandchildren->kind = node->kind;
-				grandchildren->scope = node->scope;
+				grandchildren = deal_with_grandchildren(grandchildren, node);
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 				
 			}
 			node->type = type;
 			children = children->brother;
-			children->kind = node->kind;
-			children->type = node->type;
-			strcpy(children->struct_name, node->struct_name);
+			children = deal_with_children(children, node);
 			DecList(children);
 			break;
 		default:
@@ -885,9 +870,7 @@ void Exp(Tree *node)
 			{
 				Exp(node->child);
 				Exp(node->child->brother->brother);
-				if (node->child->exp != node->child->brother->brother->exp)
-					errorprint(7, node->child->size, "");
-				else
+				if (node->child->exp == node->child->brother->brother->exp)
 					node->exp = node->child->exp;
 			}
 			else
@@ -1135,9 +1118,7 @@ void ExtDecList(Tree* node)
 {
 	Tree* children = node->child;
 	children->scope = node->scope;
-	children->kind = node->kind;
-	children->type = node->type;
-	strcpy(children->struct_name, node->struct_name);
+	children = deal_with_children(children, node);
 	children->first_verdec = 1;
 	VarDec(children);
 	if (node->num == 1) return;
@@ -1145,9 +1126,7 @@ void ExtDecList(Tree* node)
 	{
 		children = children->brother->brother;
 		children->scope = node->scope;
-		children->kind = node->kind;
-		children->type = node->type;
-		strcpy(children->struct_name, node->struct_name);
+		children = deal_with_children(children, node);
 		ExtDecList(children);
 		return;
 	}
@@ -1211,17 +1190,14 @@ void search(Tree* node, int blank)
 			if (type->Kind == 3)
 			{
 				Tree* grandchildren = children->child;
-				grandchildren->kind = node->kind;
-				grandchildren->scope = node->scope;
+				grandchildren = deal_with_grandchildren(grandchildren, node);
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 			}
 			node->type = type;
 			children = children->brother;
 			children->scope = node->scope;
-			children->type = node->type;
-			children->kind = node->kind;
-			strcpy(children->struct_name, node->struct_name);
+			children = deal_with_children(children, node);
 			ExtDecList(children);
 		}
 	}
