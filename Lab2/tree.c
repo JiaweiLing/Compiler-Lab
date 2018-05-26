@@ -2,7 +2,7 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
-#include"semantic.h"
+#include"tree.h"
 
 Tree *CreateTree(char *name)
 {

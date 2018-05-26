@@ -2,10 +2,9 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
-#include<assert.h>
 #include"semantic.h"
-#include"hash_table.h"
-
+#include"symbol_table.h"
+#include"tree.h"
 void errorprint(int errorcode, int line, char* name)
 {
 	switch (errorcode)
@@ -73,6 +72,8 @@ void VarList(Tree* node);
 void StructSpecifier(Tree* node);
 void DefList(Tree* node);
 void Def(Tree* node);
+void ExtDef(Tree* node);
+void ExtDefList(Tree* node);
 void Compst(Tree* node);
 void Dec(Tree* node);
 void DecList(Tree* node);
@@ -87,12 +88,12 @@ void deal_with_value(unsigned value, func_def_table func)
 {
 	if (value != -1)
 	{
-		symbol_table st = (symbol_table)malloc(sizeof(struct SymbolTableNode));
-		strcpy(st->name, func->name);
+		var_table var_t = (var_table)malloc(sizeof(struct VarTableNode));
+		strcpy(var_t->name, func->name);
 		Type type = (Type)malloc(sizeof(struct TYPE));
 		type->Kind = 4;
-		st->type = type;
-		insert_symbol_table(st);
+		var_t->type = type;
+		insert_var_table(var_t);
 	}
 }
 Tree *deal_with_children(Tree* children, Tree* node)
@@ -118,7 +119,7 @@ Type set_kind(Type type, enum basic_type basic)
 }
 Type Specifier(Tree* node)
 {
-
+	if (node == NULL) return NULL;
 	Type type = (Type)malloc(sizeof(struct TYPE));
 	if (strcmp(node->child->name, "TYPE") == 0)
 	{
@@ -153,39 +154,40 @@ Type Specifier(Tree* node)
 
 void VarDec(Tree *node)
 {
+	if (node == NULL) return;
 	if (node->num == 1)
 	{
 		if (node->kind == 1 || node->kind == 3)
 		{
-			//node->symt->next = NULL;
+			//node->vt->next = NULL;
 			if (node->first_verdec)
 			{
 				//Type type = (Type)malloc(sizeof(struct TYPE));
 				//type->Kind = node->type->Kind;
-				//node->symt->type = type;
-				//trcpy(node->symt->name, node->child->value);
-				//node->symt->line = node->child->size;
-				//unsigned value = insert_symbol_table(node->symt);
+				//node->vt->type = type;
+				//trcpy(node->vt->name, node->child->value);
+				//node->vt->line = node->child->size;
+				//unsigned value = insert_var_table(node->vt);
 				//printf("%d\n", value);
-				symbol_table syt = (symbol_table)malloc(sizeof(struct SymbolTableNode));
+				var_table var_t = (var_table)malloc(sizeof(struct VarTableNode));
 				
-				strcpy(syt->name, node->child->value);
+				strcpy(var_t->name, node->child->value);
 				if (node->type->Kind == 3)
-					strcpy(syt->struct_name, node->struct_name);
-				syt->line = node->child->size;
-				syt->type = node->type;
-				unsigned value = insert_symbol_table(syt);
+					strcpy(var_t->struct_name, node->struct_name);
+				var_t->line = node->child->size;
+				var_t->type = node->type;
+				unsigned value = insert_var_table(var_t);
 				
 			}
 			else
 			{
-				//strcpy(node->symt->struct_name, node->struct_name);
+				//strcpy(node->vt->struct_name, node->struct_name);
 				//Type type = (Type)malloc(sizeof(struct TYPE));
 				//type->Kind = node->type->kind;
-				//node->symt->type = type;
-				strcpy(node->symt->name, node->child->value);
-				node->symt->line = node->child->size;
-				unsigned value = insert_symbol_table(node->symt);
+				//node->vt->type = type;
+				strcpy(node->vt->name, node->child->value);
+				node->vt->line = node->child->size;
+				unsigned value = insert_var_table(node->vt);
 				
 			}
 		}
@@ -195,11 +197,11 @@ void VarDec(Tree *node)
 			if (node->first_verdec)
 			{
 				struct para* Para = (struct para*)malloc(sizeof(struct para));
-				symbol_table st = (symbol_table)malloc(sizeof(struct SymbolTableNode));
+				var_table var_t = (var_table)malloc(sizeof(struct VarTableNode));
 				strcpy(Para->name, node->child->value);
-				strcpy(st->name, node->child->value);
-				st->type = node->type;
-				insert_symbol_table(st);
+				strcpy(var_t->name, node->child->value);
+				var_t->type = node->type;
+				insert_var_table(var_t);
 				if (node->type->Kind == 3)
 					strcpy(Para->struct_name, node->struct_name);
 				Para->type = node->type;
@@ -238,17 +240,18 @@ void VarDec(Tree *node)
 		{
 			if (node->first_verdec)
 			{
-				symbol_table syt = (symbol_table)malloc(sizeof(struct SymbolTableNode));
-				syt->type = node->type;
+				var_table var_t = (var_table)malloc(sizeof(struct VarTableNode));
+				var_t->type = node->type;
 				if (node->type->Kind == 3)
-					strcpy(syt->struct_name, node->struct_name);
+					strcpy(var_t->struct_name, node->struct_name);
 				Type type = (Type)malloc(sizeof(struct TYPE));
+				
 				type->Kind = 2;
 				type->Array.size = atoi(node->child->brother->brother->value);
-				type->Array.element = syt->type;
-				syt->type = type;
+				type->Array.element = var_t->type;
+				var_t->type = type;
 				Tree* children = node->child;
-				children->symt = syt;
+				children->vt = var_t;
 				children->first_verdec = 0;
 				children->kind = node->kind;
 				VarDec(children);
@@ -258,12 +261,12 @@ void VarDec(Tree *node)
 				Type type = (Type)malloc(sizeof(struct TYPE));
 				type->Kind = 2;
 				type->Array.size = atoi(node->child->brother->brother->value);
-				type->Array.element = node->symt->type;
-				node->symt->type = type;
+				type->Array.element = node->vt->type;
+				node->vt->type = type;
 				Tree* children = node->child;
-				//VarDec_st_Children(children, node->symt, node->kind);
+				//VarDec_st_Children(children, node->vt, node->kind);
 
-				children->symt = node->symt;
+				children->vt = node->vt;
 				children->first_verdec = 0;
 				children->kind = node->kind;
 				VarDec(children);
@@ -348,7 +351,7 @@ void VarDec(Tree *node)
 
 void ParamDec(Tree* node)
 {
-	assert(strcmp(node->name, "ParamDec") == 0);
+	if (node == NULL) return;
 	/*
 	struct para* Para = (struct para*)malloc(sizeof(struct para));
 	Para->type = NULL;
@@ -404,7 +407,7 @@ void ParamDec(Tree* node)
 
 void VarList(Tree* node)
 {
-	assert(strcmp(node->name, "VarList") == 0);
+	if (node == NULL) return;
 	Tree* children = node->child;
 	children->kind = node->kind;
 	children->func = node->func;
@@ -423,6 +426,7 @@ void VarList(Tree* node)
 
 void FunDec(Tree* node)
 {
+	if (node == NULL) return;
 	func_def_table func = (func_def_table)malloc(sizeof(struct FunctionDefTableNode));
 	func->return_type = node->type->Basic;
 	func->num_para = 0;
@@ -458,6 +462,7 @@ void FunDec(Tree* node)
 void Dec(Tree* node)
 {
 	//if (node->num == 1)
+	if (node == NULL) return;
 	Tree* children = node->child;
 	switch (node->kind)
 	{
@@ -519,18 +524,18 @@ void Dec(Tree* node)
 			{
 				//children = children->brother->brother;
 				//children->kind = node->kind;
-				symbol_table st = search_symbol(node->child->child);
+				var_table var_t = search_variable(node->child->child);
 				children = node->child->brother->brother;
 				children->kind = node->kind;
 				Exp(children);
 				if (children->exp == 2)
-					if (st->type->Kind != 1 ||
-					(st->type->Kind == 1 && st->type->Basic != 1))
+					if (var_t->type->Kind != 1 ||
+					(var_t->type->Kind == 1 && var_t->type->Basic != 1))
 						errorprint(5, children->size, "");
 				else
 				if (children->exp == 3)
-					if (st->type->Kind != 1 ||
-					(st->type->Kind == 1 && st->type->Basic != 2))
+					if (var_t->type->Kind != 1 ||
+					(var_t->type->Kind == 1 && var_t->type->Basic != 2))
 						errorprint(5, children->size, "");
 			}
 			break;
@@ -544,6 +549,7 @@ void Dec(Tree* node)
 
 void DecList(Tree* node)
 {
+	if (node == NULL) return;
 	Tree* children = node->child;
 	children = deal_with_children(children, node);
 	children->strt = node->strt;
@@ -592,9 +598,46 @@ void DecList(Tree* node)
 		}
 	}
 }
+void ExtDefList(Tree* node)
+{
+	if (node == NULL) return;
+	if (node->child == NULL) return;
+	ExtDef(node->child);
+	ExtDefList(node->child->brother);
+}
+void ExtDef(Tree* node)
+{
+	if (node == NULL) return;
+	Type type = (Type)malloc(sizeof(struct TYPE));
+	type = Specifier(node->child);
+	if (strcmp(node->child->brother->name, "SEMI") == 0) return;
+	else
+	if (strcmp(node->child->brother->name, "ExtDecList") == 0)
+		ExtDecList(node->child->brother);
+	else
+	if (strcmp(node->child->brother->name, "FunDec") == 0)
+	{
+		FunDec(node->child->brother);
+		func_def_table func = search_func(node->child);
+		if (strcmp(node->child->name, "Compst") == 0)
+		{
+			if (func == NULL) return;
+			func->judge_func = 1;
+			Compst(node->child->brother);
+		}
+		else
+		if (strcmp(node->child->brother->name, "SEMI") == 0)
+		{
+			if (func == NULL) return;
+			func->judge_func = 0;
+		}
+	}
+	else return;
+}
 void Def(Tree* node)
 {
 	//if (node->struct_def)
+	if (node == NULL) return;
 	Type type = (Type)malloc(sizeof(struct TYPE));
 	Tree* children = node->child;
 	Tree* grandchildren = children->child;
@@ -650,8 +693,9 @@ void Def(Tree* node)
 }
 void DefList(Tree* node)
 {
+	if (node == NULL) return;
 	if (node->num == 0) return;
-	//assert(node->num == 2);
+	
 	//if (node->struct_def)
 	Tree* children = node->child;
 	switch (node->kind)
@@ -694,21 +738,18 @@ void DefList(Tree* node)
 
 void StructSpecifier(Tree* node)
 {
-	assert(strcmp(node->name, "StructSpecifier") == 0);
+	if (node == NULL) return;
+	
 	//struct_table st = (struct_table)malloc(sizeof(struct StructTableNode));
 	//st->type = type;
 	if (node->num != 2)
 	{
 	
-		assert(node->num == 5);
 		//st->Kind = 1;
 		//node->strt->Kind = 1;
 		Tree* children = node->child->brother;
 		if (children->num != 0)
-		{
-			assert(children->num == 1);
 			strcpy(node->strt->name, children->child->value);
-		}
 		children = children->brother->brother;
 		//children->strt = st;
 		//children->struct_def = 1;
@@ -732,6 +773,7 @@ void StructSpecifier(Tree* node)
 void Compst(Tree* node)
 {
 	//DefList(node->child->brother);
+	if (node == NULL) return;
 	Tree* children = node->child->brother;
 	children->kind = node->kind;
 	children->return_type = node->return_type;
@@ -743,6 +785,7 @@ void Compst(Tree* node)
 }
 void Exp(Tree *node)
 {
+	if (node == NULL) return;
 	Tree* children = node->child;
 	//printf("num = %d\n", node->num);
 	switch (node->num)
@@ -751,28 +794,28 @@ void Exp(Tree *node)
 			children = node->child;
 			if (strcmp(children->name, "ID") == 0)
 			{
-				//if (search_symbol(children) == -1)
+				//if (search_variable(children) == -1)
 					//errorprint(1, children->size, children->value);
 				//node->type = children->type;
 				//strcpy(node->struct_name, children->struct_name);
 				//node->exp = 1;
-				symbol_table syt = search_symbol(children);
-				if (syt != NULL)
+				var_table var_t = search_variable(children);
+				if (var_t != NULL)
 				{
-					if (syt->type->Kind == 1)
+					if (var_t->type->Kind == 1)
 					{
-						if (syt->type->Basic == 1)
+						if (var_t->type->Basic == 1)
 							node->exp = 2;
 						else
-						if (syt->type->Basic == 2)
+						if (var_t->type->Basic == 2)
 							node->exp = 3;
 					}
 					else
-					if (syt->type->Kind == 2)
+					if (var_t->type->Kind == 2)
 					{
 						node->exp = 4;
 						int size = 0;
-						Type type = syt->type;
+						Type type = var_t->type;
 						while (type->Kind != 1 && type->Kind != 3)
 						{
 							size++;
@@ -792,13 +835,13 @@ void Exp(Tree *node)
 						node->arraySize = size;
 					}
 					else
-					if (syt->type->Kind == 3)
+					if (var_t->type->Kind == 3)
 					{
 						node->exp = 5;
-						strcpy(node->struct_name, syt->struct_name);
+						strcpy(node->struct_name, var_t->struct_name);
 					}
 					else
-					if (syt->type->Kind == 4)
+					if (var_t->type->Kind == 4)
 						node->exp = 6;
 					else
 						node->exp = 0;
@@ -833,7 +876,7 @@ void Exp(Tree *node)
 				Exp(node->child);
 				if (node->child->judge_num) 
 					errorprint(6, node->child->size, "");
-				assert(strcmp(node->child->brother->brother->name, "Exp") == 0);
+				
 				Exp(node->child->brother->brother);
 				
 				if (node->child->exp == 4 && node->child->num != 1)
@@ -916,12 +959,12 @@ void Exp(Tree *node)
 				Exp(node->child);
 				node->exp = node->child->exp;
 				
-				symbol_table syt = search_symbol(node->child);
+				var_table var_t = search_variable(node->child);
 				func_def_table func = search_func(node->child);
-				if (syt == NULL) 
+				if (var_t == NULL) 
 					errorprint(2, node->child->size, node->child->value);
 				else
-				if (syt->type->Kind != 4)
+				if (var_t->type->Kind != 4)
 					errorprint(11, node->child->size, node->child->value);
 				else
 				{
@@ -936,17 +979,16 @@ void Exp(Tree *node)
 		case 4:
 			if (strcmp(node->child->name, "ID") == 0)
 			{
-				symbol_table syt = search_symbol(node->child);
+				var_table var_t = search_variable(node->child);
 				func_def_table func = search_func(node->child);
-				if (syt == NULL)
+				if (var_t == NULL)
 					errorprint(2, node->child->size, node->child->value);
 				else
-				if (syt->type->Kind != 4)
+				if (var_t->type->Kind != 4)
 					errorprint(11, node->child->size, node->child->value);
 				else
 				{
 					children = node->child->brother->brother;
-					assert(strcmp(children->name, "Args") == 0);
 					children->args = NULL;
 					int numArgs = Args(children, 0);
 					if (numArgs != func->num_para)
@@ -1061,6 +1103,7 @@ int Args(Tree* node, int num)
 }
 void Stmt(Tree* node)
 {
+	if (node == NULL) return;
 	Tree* children = node->child;
 	switch (node->num)
 	{
@@ -1090,7 +1133,7 @@ void Stmt(Tree* node)
 			break;
 		case 5:
 			if (strcmp(children->name, "IF") == 0) Exp(node->child->brother->brother);
-			else assert(strcmp(children->name, "WHILE") == 0);
+			else {}
 			break;
 		case 7:
 			
@@ -1099,23 +1142,19 @@ void Stmt(Tree* node)
 }
 void StmtList(Tree* node)
 {
-	if (node->num == 0) return;
-	else
-	{
-		Tree* children = node->child;
-		children->kind = node->kind;
-		children->return_type = node->return_type;
-		Stmt(children);
-		children = children->brother;
-		children->kind = node->kind;
-		children->return_type = node->return_type;
-		StmtList(children);
-		
-	}
-	
+	if (node == NULL || node->num == 0) return;
+	Tree* children = node->child;
+	children->kind = node->kind;
+	children->return_type = node->return_type;
+	Stmt(children);
+	children = children->brother;
+	children->kind = node->kind;
+	children->return_type = node->return_type;
+	StmtList(children);
 }
 void ExtDecList(Tree* node)
 {
+	if (node == NULL) return;
 	Tree* children = node->child;
 	children->scope = node->scope;
 	children = deal_with_children(children, node);

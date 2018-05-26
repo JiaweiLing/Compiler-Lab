@@ -1,4 +1,4 @@
-#include"hash_table.h"
+#include"symbol_table.h"
 #include"semantic.h"
 #include<stdio.h>
 #include<stdlib.h>
@@ -22,9 +22,8 @@ void init_hash()
 	int i;
 	for (i = 0; i < hash_size; i++)
 	{
-		SymbolTableHash[i] = NULL;
+		VarTableHash[i] = NULL;
 		FunctionDefHash[i] = NULL;
-		FunctionDecHash[i] = NULL;
 		StructDefHash[i] = NULL;
 	}
 }
@@ -32,15 +31,12 @@ int insert_function_def_table(func_def_table node)
 {
 	unsigned index = hash_table(node->name);
 	func_def_table fdt = FunctionDefHash[index];
-	while (fdt != NULL)
-	{
+	for (; fdt; fdt = fdt->next)
 		if (strcmp(fdt->name, node->name) == 0)
 		{
 			errorprint(4, node->line, node->name);
 			return -1;
 		}
-		fdt = fdt->next;
-	}
 	if (FunctionDefHash[index] == NULL)
 	{
 		FunctionDefHash[index] = node;
@@ -56,39 +52,26 @@ int insert_function_def_table(func_def_table node)
 }
 
 
-int insert_symbol_table(symbol_table node)
+int insert_var_table(var_table node)
 {
 	unsigned index = hash_table(node->name);
-	symbol_table st = SymbolTableHash[index];
-	while (st != NULL)
-	{
-		if (strcmp(node->name, st->name) == 0)
+	var_table vt = VarTableHash[index];
+	for (; vt; vt = vt->next)
+		if (strcmp(node->name, vt->name) == 0)
 		{
 			errorprint(3, node->line, node->name);
 			return -1;
 		}
-		st = st->next;
-	}
-	struct_table strt = StructDefHash[index];
-	while (strt != NULL)
+	if (VarTableHash[index] == NULL)
 	{
-		if (strcmp(node->name, strt->name) == 0)
-		{
-			errorprint(3, node->line, node->name);
-			return -1;
-		}
-		strt = strt->next;
-	}
-	if (SymbolTableHash[index] == NULL)
-	{
-		SymbolTableHash[index] = node;
+		VarTableHash[index] = node;
 		node->next = NULL;
 		return 0;
 	}
 	else
 	{
-		node->next = SymbolTableHash[index];
-		SymbolTableHash[index] = node;
+		node->next = VarTableHash[index];
+		VarTableHash[index] = node;
 		return 1;
 	}
 }
@@ -97,15 +80,12 @@ int insert_struct_table(struct_table st)
 {
 	unsigned index = hash_table(st->name);
 	struct_table s = StructDefHash[index];
-	while (s != NULL)
-	{
+	for (; s; s = s->next)
 		if (strcmp(st->name, s->name) == 0)
 		{
 			errorprint(16, st->line, st->name);
 			return -1;
 		}
-		s = s->next;
-	}
 	if (StructDefHash[index] == NULL)
 	{
 		StructDefHash[index] = st;
@@ -120,54 +100,29 @@ int insert_struct_table(struct_table st)
 	}
 }
 
-symbol_table search_symbol(Tree* node)
+var_table search_variable(Tree* node)
 {
-	unsigned index = hash_table(node->value);
-	symbol_table symt;
-	symbol_table st = SymbolTableHash[index];
-	
-	while (st != NULL)
-	{
-		if (strcmp(node->value, st->name) == 0)
-		{
-			symt = st;
-			return symt;
-		}
-		st = st->next;
-	}
+	var_table vt = VarTableHash[hash_table(node->value)];
+	for (; vt; vt = vt->next)
+		if (strcmp(node->value, vt->name) == 0)
+			return vt;
 	return NULL;
 }
 
 func_def_table search_func(Tree* node)
 {
-	func_def_table ft;
-	unsigned index = hash_table(node->value);
-	func_def_table fdt = FunctionDefHash[index];
-	while (fdt != NULL)
-	{
+	func_def_table fdt = FunctionDefHash[hash_table(node->value)];
+	for (; fdt; fdt = fdt->next)
 		if (strcmp(node->value, fdt->name) == 0)
-		{
-			ft = fdt;
-			return ft;
-		}
-		fdt = fdt->next;
-	}
+			return fdt;
 	return NULL;
 }
 
 struct_table search_struct(Tree* node)
 {
-	unsigned index = hash_table(node->struct_name);
-	struct_table strt;
-	struct_table st = StructDefHash[index];
-	while (st != NULL)
-	{
+	struct_table st = StructDefHash[hash_table(node->struct_name)];
+	for (; st; st = st->next)
 		if (strcmp(node->struct_name, st->name) == 0)
-		{
-			strt = st;
-			return strt;
-		}
-		st = st->next;
-	}
+			return st;
 	return NULL;
 }

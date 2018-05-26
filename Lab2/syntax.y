@@ -1,7 +1,7 @@
 %{
 	#include<stdio.h>
 	#include<stdlib.h>
-	#include"semantic.h"
+	#include"tree.h"
 	Tree *root_node;
 	int yylex();
 	int yyerror(char *msg);
