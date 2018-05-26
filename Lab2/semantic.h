@@ -17,11 +17,12 @@ struct TypeArgs
 {
 	enum exp_type exp;
 	struct TypeArgs* next;
+	int arraySize;
 };
 
 struct para
 {
-	char name[40];
+	char name[100];
 	Type type;
 	char struct_name[100];
 	struct para* next_para;
@@ -30,8 +31,7 @@ struct para
 struct StructTableNode
 {
 	enum {Definition = 1, Declaration = 2} Kind;
-	char *name;
-	Type type;
+	char name[100];
 	int line;
 	FieldList fieldlist;
 	struct_table next;
@@ -71,12 +71,17 @@ typedef struct tree
 	char value[1000];
 	int temp, empty, size, num;
 	struct tree *child, *brother;
+	
 	enum var_kind kind;
 	enum exp_type exp;
+	
 	int first_verdec;
 	char struct_name[100];
 	int scope;
 	int judge_num;
+	int arraySize;
+	
+	enum exp_type arrayType;
 	Type type, return_type;
 	struct para* Para;
 	struct TypeArgs* args;
@@ -107,7 +112,7 @@ struct TYPE
 
 struct FUNPARALIST
 {
-	char *name;
+	char name[100];
 	char struct_name[100];
 	Type type;
 	FunParaList next;
@@ -115,7 +120,7 @@ struct FUNPARALIST
 
 struct FIELDLIST
 {
-	char *name;
+	char name[100];
 	char struct_name[100];
 	Type type;
 	FieldList next;

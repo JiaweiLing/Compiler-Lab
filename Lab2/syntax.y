@@ -143,8 +143,9 @@ int main(int argc, char** argv)
 	yyparse();
 	if (!error_state) 
 	{
-		check_semantic(root_node);
 		//PrintTree(root_node, 0);
+		check_semantic(root_node);
+		
 	}
 
 }

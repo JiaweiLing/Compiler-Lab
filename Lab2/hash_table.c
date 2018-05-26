@@ -96,15 +96,15 @@ int insert_symbol_table(symbol_table node)
 int insert_struct_table(struct_table st)
 {
 	unsigned index = hash_table(st->name);
-	struct_table s_t = StructDefHash[index];
-	while (s_t != NULL)
+	struct_table s = StructDefHash[index];
+	while (s != NULL)
 	{
-		if (strcmp(st->name, s_t->name) == 0)
+		if (strcmp(st->name, s->name) == 0)
 		{
 			errorprint(16, st->line, st->name);
 			return -1;
 		}
-		s_t = s_t->next;
+		s = s->next;
 	}
 	if (StructDefHash[index] == NULL)
 	{
@@ -130,9 +130,6 @@ symbol_table search_symbol(Tree* node)
 	{
 		if (strcmp(node->value, st->name) == 0)
 		{
-			//strcpy(node->struct_name, st->struct_name);
-			//node->type = st->type;
-			//return 1;
 			symt = st;
 			return symt;
 		}
@@ -150,7 +147,6 @@ func_def_table search_func(Tree* node)
 	{
 		if (strcmp(node->value, fdt->name) == 0)
 		{
-			//return 1;
 			ft = fdt;
 			return ft;
 		}

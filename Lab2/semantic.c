@@ -38,7 +38,7 @@ void errorprint(int errorcode, int line, char* name)
 			printf("Error type 9 at Line %d: Function \"%s\" is not applicable for arguments.\n", line, name);
 			break;
 		case 10:
-			printf("Error type 10 at Line %d: This array is not an array.\n", line);
+			printf("Error type 10 at Line %d: This is not an array.\n", line);
 			break;
 		case 11:
 			printf("Error type 11 at Line %d: \"%s\" is not a function.\n", line, name);
@@ -109,13 +109,7 @@ Tree* deal_with_grandchildren(Tree* grandchildren, Tree* node)
 	return grandchildren;
 }
 
-void VarDec_st_Children(Tree* node, symbol_table st, enum var_kind kind)
-{
-	node->first_verdec = 0;
-	node->kind = kind;
-	node->symt = st;
-	VarDec(node);
-}
+
 Type set_kind(Type type, enum basic_type basic)
 {
 	type->Kind = 1;
@@ -124,6 +118,7 @@ Type set_kind(Type type, enum basic_type basic)
 }
 Type Specifier(Tree* node)
 {
+
 	Type type = (Type)malloc(sizeof(struct TYPE));
 	if (strcmp(node->child->name, "TYPE") == 0)
 	{
@@ -213,7 +208,7 @@ void VarDec(Tree *node)
 			}
 			else
 			{
-				strcpy(node->Para->name, node->child->name);
+				strcpy(node->Para->name, node->child->value);
 				return;
 			}
 		}
@@ -253,7 +248,10 @@ void VarDec(Tree *node)
 				type->Array.element = syt->type;
 				syt->type = type;
 				Tree* children = node->child;
-				VarDec_st_Children(children, syt, node->kind);
+				children->symt = syt;
+				children->first_verdec = 0;
+				children->kind = node->kind;
+				VarDec(children);
 			}
 			else
 			{
@@ -263,8 +261,12 @@ void VarDec(Tree *node)
 				type->Array.element = node->symt->type;
 				node->symt->type = type;
 				Tree* children = node->child;
-				VarDec_st_Children(children, node->symt, node->kind);
+				//VarDec_st_Children(children, node->symt, node->kind);
 
+				children->symt = node->symt;
+				children->first_verdec = 0;
+				children->kind = node->kind;
+				VarDec(children);
 			}
 		}
 		else
@@ -374,7 +376,9 @@ void ParamDec(Tree* node)
 	if (type->Kind == 3)
 	{
 		Tree* grandchildren = children->child;
-		grandchildren = deal_with_grandchildren(grandchildren, node);
+		//grandchildren = deal_with_grandchildren(grandchildren, node);
+		grandchildren->kind = node->kind;
+		grandchildren->scope = node->scope;
 		StructSpecifier(grandchildren);
 		strcpy(node->struct_name, grandchildren->struct_name);
 	}
@@ -462,7 +466,9 @@ void Dec(Tree* node)
 			//node->child->type = type;
 			//VarDec(node->child);
 			//children = node->child;
-			children = deal_with_children(children, node);
+			children->kind = node->kind;
+			children->type = node->type;
+			strcpy(children->struct_name, node->struct_name);
 			children->strt = node->strt;
 			children->first_verdec = 1;
 			VarDec(children);
@@ -508,7 +514,9 @@ void Dec(Tree* node)
 			break;
 		case 3:
 			//return;
-			children = deal_with_children(children, node);
+			children->kind = node->kind;
+			children->type = node->type;
+			strcpy(children->struct_name, node->struct_name);
 			children->first_verdec = 1;
 			VarDec(children);
 			if (node->num == 1) return;
@@ -516,7 +524,7 @@ void Dec(Tree* node)
 			{
 				//children = children->brother->brother;
 				//children->kind = node->kind;
-				symbol_table st = search_symbol(children->child);
+				symbol_table st = search_symbol(node->child->child);
 				children = node->child->brother->brother;
 				children->kind = node->kind;
 				Exp(children);
@@ -542,7 +550,9 @@ void Dec(Tree* node)
 void DecList(Tree* node)
 {
 	Tree* children = node->child;
-	children = deal_with_children(children, node);
+	children->kind = node->kind;
+	children->type = node->type;
+	strcpy(children->struct_name, node->struct_name);
 	children->strt = node->strt;
 	children->scope = node->scope;
 	Dec(children);
@@ -571,7 +581,9 @@ void DecList(Tree* node)
 		//Dec(type, node->child);
 		//DecList(type, node->child->brother->brother);
 		children = children->brother->brother;
-		children = deal_with_children(children, node);
+		children->kind = node->kind;
+		children->type = node->type;
+		strcpy(children->struct_name, node->struct_name);
 		children->strt = node->strt;
 		children->scope = node->scope;
 		DecList(children);
@@ -606,14 +618,18 @@ void Def(Tree* node)
 			if (type->Kind == 3)
 			{
 				//grandchildren = children->child;
-				grandchildren = deal_with_grandchildren(grandchildren, node);
+				//grandchildren = deal_with_grandchildren(grandchildren, node);
+				grandchildren->kind = node->kind;
+				grandchildren->scope = node->scope;
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 				
 			}
 			node->type = type;
 			children = children->brother;
-			children = deal_with_children(children, node);
+			children->kind = node->kind;
+			children->type = node->type;
+			strcpy(children->struct_name, node->struct_name);
 			children->strt = node->strt;
 
 			DecList(children);
@@ -624,14 +640,17 @@ void Def(Tree* node)
 			if (type->Kind == 3)
 			{
 				//grandchildren = children->child;
-				grandchildren = deal_with_grandchildren(grandchildren, node);
+				grandchildren->kind = node->kind;
+				grandchildren->scope = node->scope;
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 				
 			}
 			node->type = type;
 			children = children->brother;
-			children = deal_with_children(children, node);
+			children->kind = node->kind;
+			children->type = node->type;
+			strcpy(children->struct_name, node->struct_name);
 			DecList(children);
 			break;
 		default:
@@ -744,6 +763,7 @@ void Exp(Tree *node)
 	switch (node->num)
 	{
 		case 1:
+			children = node->child;
 			if (strcmp(children->name, "ID") == 0)
 			{
 				//if (search_symbol(children) == -1)
@@ -751,28 +771,49 @@ void Exp(Tree *node)
 				//node->type = children->type;
 				//strcpy(node->struct_name, children->struct_name);
 				//node->exp = 1;
-				symbol_table st = search_symbol(children);
-				if (st != NULL)
+				symbol_table syt = search_symbol(children);
+				if (syt != NULL)
 				{
-					if (st->type->Kind == 1)
+					if (syt->type->Kind == 1)
 					{
-						if (st->type->Basic == 1)
+						if (syt->type->Basic == 1)
 							node->exp = 2;
 						else
-						if (st->type->Basic == 2)
+						if (syt->type->Basic == 2)
 							node->exp = 3;
 					}
 					else
-					if (st->type->Kind == 2)
-						node->exp = 4;
-					else
-					if (st->type->Kind == 3)
+					if (syt->type->Kind == 2)
 					{
-						node->exp = 5;
-						strcpy(node->struct_name, st->struct_name);
+						node->exp = 4;
+						int size = 0;
+						Type type = syt->type;
+						while (type->Kind != 1 && type->Kind != 3)
+						{
+							size++;
+							type = type->Array.element;
+						}
+						if (type->Kind == 1)
+						{
+							if (type->Basic == 1)
+								node->arrayType = 2;
+							else
+							if (type->Basic == 2)
+								node->arrayType = 3;
+						}
+						else
+						if (type->Kind == 3)
+							node->arrayType = 5;
+						node->arraySize = size;
 					}
 					else
-					if (st->type->Kind == 4)
+					if (syt->type->Kind == 3)
+					{
+						node->exp = 5;
+						strcpy(node->struct_name, syt->struct_name);
+					}
+					else
+					if (syt->type->Kind == 4)
 						node->exp = 6;
 					else
 						node->exp = 0;
@@ -784,34 +825,43 @@ void Exp(Tree *node)
 				}
 			}
 			else
+			if (strcmp(children->name, "INT") == 0)
 			{
-				if (strcmp(children->name, "INT") == 0)
-				{
-					node->exp = 2;
-					node->judge_num = 1;
-				}
-				else
-				if (strcmp(children->name, "FLOAT") == 0)
-				{
-					node->exp = 3;
-					node->judge_num = 1;
-				}
+				node->exp = 2;
+				node->judge_num = 1;
 			}
+			else
+			if (strcmp(children->name, "FLOAT") == 0)
+			{
+				node->exp = 3;
+				node->judge_num = 1;
+			}
+			
+			break;
+		case 2:
 			break;
 		case 3:
-			children = children->brother;
+			children = node->child->brother;
 			if (strcmp(children->name, "ASSIGNOP") == 0)
 			{
+				
 				Exp(node->child);
 				if (node->child->judge_num) 
 					errorprint(6, node->child->size, "");
 				assert(strcmp(node->child->brother->brother->name, "Exp") == 0);
 				Exp(node->child->brother->brother);
-				if (node->child->exp != 0 && node->child->exp != node->child->brother->brother->exp)
+				
+				if (node->child->exp == 4 && node->child->num != 1)
 				{
-					
+					if (node->child->arrayType != node->child->brother->brother->exp)
 						errorprint(5, node->child->size, "");
 				}
+				else
+				if (node->child->exp != 0 && node->child->exp != node->child->brother->brother->exp)
+				{
+					errorprint(5, node->child->size, "");
+				}
+				
 				node->exp = node->child->exp;
 			}
 			else
@@ -849,11 +899,28 @@ void Exp(Tree *node)
 			
 				else
 				{
-					struct_table st = search_struct(node->child);
-					FieldList fieldlist = st->fieldlist;
+					struct_table strt = search_struct(node->child);
+					FieldList fieldlist = strt->fieldlist;
 					while (fieldlist != NULL)
 					{
-						if (strcmp(fieldlist->name, node->child->brother->brother->value) == 0) break;
+						if (strcmp(fieldlist->name, node->child->brother->brother->value) == 0)
+						{
+							if (fieldlist->type->Kind == 1)
+							{
+								if (fieldlist->type->Basic == 1)
+									node->exp = 2;
+								else
+								if (fieldlist->type->Basic == 2)
+									node->exp = 3;
+							}
+							else
+							if (fieldlist->type->Kind == 2)
+								node->exp = 4;
+							else
+							if (fieldlist->type->Kind == 3)
+								node->exp = 5;
+							break;
+						}
 						fieldlist = fieldlist->next;
 					}
 					if (fieldlist == NULL)
@@ -866,12 +933,12 @@ void Exp(Tree *node)
 				Exp(node->child);
 				node->exp = node->child->exp;
 				
-				symbol_table st = search_symbol(node->child);
+				symbol_table syt = search_symbol(node->child);
 				func_def_table func = search_func(node->child);
-				if (st == NULL) 
+				if (syt == NULL) 
 					errorprint(2, node->child->size, node->child->value);
 				else
-				if (st->type->Kind != 4)
+				if (syt->type->Kind != 4)
 					errorprint(11, node->child->size, node->child->value);
 				else
 				{
@@ -884,14 +951,14 @@ void Exp(Tree *node)
 			}
 			break;
 		case 4:
-			if (strcmp(children->name, "ID") == 0)
+			if (strcmp(node->child->name, "ID") == 0)
 			{
-				symbol_table st = search_symbol(node->child);
+				symbol_table syt = search_symbol(node->child);
 				func_def_table func = search_func(node->child);
-				if (st == NULL)
+				if (syt == NULL)
 					errorprint(2, node->child->size, node->child->value);
 				else
-				if (st->type->Kind != 4)
+				if (syt->type->Kind != 4)
 					errorprint(11, node->child->size, node->child->value);
 				else
 				{
@@ -908,18 +975,34 @@ void Exp(Tree *node)
 						while (Para != NULL)
 						{
 							if (TA->exp == 2)
+							{
 								if (Para->type->Kind != 1 ||
 								(Para->type->Kind == 1 && Para->type->Basic != 1))
 									errorprint(9, children->size, func->name);
+							}
 							else
 							if (TA->exp == 3)
+							{
 								if (Para->type->Kind != 1 ||
 								(Para->type->Kind == 1 && Para->type->Basic != 2))
 									errorprint(9, children->size, func->name);
+							}
 							else
 							if (TA->exp == 4)
+							{
+								Type type = Para->type;
+								int size = 0;
+								while (type->Kind != 1 && type->Kind != 3)
+								{
+									size++;
+									type = type->Array.element;
+								}
 								if (Para->type->Kind != 2)
 									errorprint(9, children->size, func->name);
+								else
+								if (size != TA->arraySize)
+									errorprint(9, children->size, func->name);
+							}
 							else
 							if (TA->exp == 5)
 								if (Para->type->Kind != 3)
@@ -941,14 +1024,22 @@ void Exp(Tree *node)
 			}
 			else
 			{
-				Exp(node->child);
-				if (node->child->exp != 2)
-					errorprint(10, node->child->size, "");
-				else
+				Tree* children = node->child;
+				Exp(children);
+				node->exp = children->exp;
+				node->arrayType = children->arrayType;
+				node->arraySize = children->arraySize;
+				if (strcmp(node->child->child->name, "ID") == 0)
 				{
-					Exp(node->child->brother->brother);
-					if (node->child->brother->brother->exp != 2)
-						errorprint(12, node->child->brother->brother->size, "");
+					if (children->exp != 4)
+						errorprint(10, node->child->size, "");
+					else
+					{
+						children = children->brother->brother;
+						Exp(children);
+						if (children->exp != 2)
+							errorprint(12, node->child->brother->brother->size, "");
+					}
 				}
 			}
 			break;
@@ -960,10 +1051,10 @@ int Args(Tree* node, int num)
 {
 	Exp(node->child);
 	num++;
-
 	struct TypeArgs* TA = (struct TypeArgs*)malloc(sizeof(struct TypeArgs));
 	TA->exp = node->child->exp;
-
+	
+	if (TA->exp == 4) TA->arraySize = node->child->arraySize;
 	if(node->args == NULL)
 	{
 		node->args = TA;
@@ -1044,7 +1135,9 @@ void ExtDecList(Tree* node)
 {
 	Tree* children = node->child;
 	children->scope = node->scope;
-	children = deal_with_children(children, node);
+	children->kind = node->kind;
+	children->type = node->type;
+	strcpy(children->struct_name, node->struct_name);
 	children->first_verdec = 1;
 	VarDec(children);
 	if (node->num == 1) return;
@@ -1052,7 +1145,9 @@ void ExtDecList(Tree* node)
 	{
 		children = children->brother->brother;
 		children->scope = node->scope;
-		children = deal_with_children(children, node);
+		children->kind = node->kind;
+		children->type = node->type;
+		strcpy(children->struct_name, node->struct_name);
 		ExtDecList(children);
 		return;
 	}
@@ -1097,10 +1192,10 @@ void search(Tree* node, int blank)
 			Tree* children = node->child->child;
 			children->kind = node->kind;
 			children->scope = node->scope;
-			struct_table st = (struct_table)malloc(sizeof(struct StructTableNode));
-			children->strt = st;
+			struct_table strt = (struct_table)malloc(sizeof(struct StructTableNode));
+			children->strt = strt;
 			StructSpecifier(children);
-			children->strt->line = node->size;
+			children->strt->line = children->size;
 			unsigned value = insert_struct_table(children->strt);
 		}
 		else
@@ -1116,14 +1211,17 @@ void search(Tree* node, int blank)
 			if (type->Kind == 3)
 			{
 				Tree* grandchildren = children->child;
-				grandchildren = deal_with_grandchildren(grandchildren, node);
+				grandchildren->kind = node->kind;
+				grandchildren->scope = node->scope;
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 			}
 			node->type = type;
 			children = children->brother;
 			children->scope = node->scope;
-			children = deal_with_children(children, node);
+			children->type = node->type;
+			children->kind = node->kind;
+			strcpy(children->struct_name, node->struct_name);
 			ExtDecList(children);
 		}
 	}
