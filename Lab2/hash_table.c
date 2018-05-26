@@ -70,7 +70,7 @@ int insert_symbol_table(symbol_table node)
 		st = st->next;
 	}
 	struct_table strt = StructDefHash[index];
-	while (st != NULL)
+	while (strt != NULL)
 	{
 		if (strcmp(node->name, strt->name) == 0)
 		{

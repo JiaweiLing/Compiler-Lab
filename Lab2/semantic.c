@@ -41,7 +41,7 @@ void errorprint(int errorcode, int line, char* name)
 			printf("Error type 10 at Line %d: This array is not an array.\n", line);
 			break;
 		case 11:
-			printf("Error type 11 at Line %d: This function is not a function.\n", line);
+			printf("Error type 11 at Line %d: \"%s\" is not a function.\n", line, name);
 			break;
 		case 12:
 			printf("Error type 12 at Line %d: This number is not an integer.\n", line);
@@ -109,6 +109,13 @@ Tree* deal_with_grandchildren(Tree* grandchildren, Tree* node)
 	return grandchildren;
 }
 
+void VarDec_st_Children(Tree* node, symbol_table st, enum var_kind kind)
+{
+	node->first_verdec = 0;
+	node->kind = kind;
+	node->symt = st;
+	VarDec(node);
+}
 Type set_kind(Type type, enum basic_type basic)
 {
 	type->Kind = 1;
@@ -148,13 +155,6 @@ Type Specifier(Tree* node)
 	}
 }
 
-void VarDec_st_Children(Tree* node, symbol_table st, enum var_kind kind)
-{
-	node->first_verdec = 0;
-	node->kind = kind;
-	node->symt = st;
-	VarDec(node);
-}
 
 void VarDec(Tree *node)
 {
@@ -496,13 +496,13 @@ void Dec(Tree* node)
 					children->strt->fieldlist = children->fieldlist;
 					children->fieldlist->next = NULL;
 				}
-			}
-			else
-			{
-				children->fieldlist->next = children->strt->fieldlist;
-				children->strt->fieldlist = children->fieldlist;
-			}
 			
+				else
+				{
+					children->fieldlist->next = children->strt->fieldlist;
+					children->strt->fieldlist = children->fieldlist;
+				}
+			}
 			node->strt = children->strt;
 			return;
 			break;
@@ -777,6 +777,11 @@ void Exp(Tree *node)
 					else
 						node->exp = 0;
 				}
+				else
+				{
+					errorprint(1, children->size, children->value);
+					node->exp = 0;
+				}
 			}
 			else
 			{
@@ -802,9 +807,9 @@ void Exp(Tree *node)
 					errorprint(6, node->child->size, "");
 				assert(strcmp(node->child->brother->brother->name, "Exp") == 0);
 				Exp(node->child->brother->brother);
-				if (node->child->exp == 0)
+				if (node->child->exp != 0 && node->child->exp != node->child->brother->brother->exp)
 				{
-					if (node->child->exp != node->child->brother->brother->exp)
+					
 						errorprint(5, node->child->size, "");
 				}
 				node->exp = node->child->exp;
@@ -817,7 +822,9 @@ void Exp(Tree *node)
 			{
 				Exp(node->child);
 				Exp(node->child->brother->brother);
-				if (node->child->exp != node->child->brother->brother->exp)
+				if (node->child->exp != node->child->brother->brother->exp ||
+				    (node->child->exp != 2 && node->child->exp != 3) ||
+				    (node->child->brother->brother->exp != 2 && node->child->brother->brother->exp != 3))
 					errorprint(7, node->child->size, "");
 				else
 					if (node->child->exp == 2 || node->child->exp == 3)
@@ -851,6 +858,28 @@ void Exp(Tree *node)
 					}
 					if (fieldlist == NULL)
 						errorprint(14, node->child->brother->brother->size, node->child->brother->brother->value);
+				}
+			}
+			else
+			if (strcmp(children->name, "LP") == 0)
+			{
+				Exp(node->child);
+				node->exp = node->child->exp;
+				
+				symbol_table st = search_symbol(node->child);
+				func_def_table func = search_func(node->child);
+				if (st == NULL) 
+					errorprint(2, node->child->size, node->child->value);
+				else
+				if (st->type->Kind != 4)
+					errorprint(11, node->child->size, node->child->value);
+				else
+				{
+					if (func->return_type == 1)
+						node->exp = 2;
+					else
+					if (func->return_type == 2)
+						node->exp = 3;
 				}
 			}
 			break;
@@ -888,12 +917,26 @@ void Exp(Tree *node)
 								(Para->type->Kind == 1 && Para->type->Basic != 2))
 									errorprint(9, children->size, func->name);
 							else
+							if (TA->exp == 4)
+								if (Para->type->Kind != 2)
+									errorprint(9, children->size, func->name);
+							else
+							if (TA->exp == 5)
+								if (Para->type->Kind != 3)
+									errorprint(9, children->size, func->name);
+							else
+							
 							if (TA->exp == 0)
 								errorprint(9, children->size, func->name);
 							TA = TA->next;
 							Para = Para->next_para;
 						} 
 					}
+					if (func->return_type == 1)
+						node->exp = 2;
+					else
+					if (func->return_type == 2)
+						node->exp = 3;
 				}
 			}
 			else
@@ -967,10 +1010,12 @@ void Stmt(Tree* node)
 			{
 				if (node->return_type->Kind != 1 || (node->return_type->Kind == 1 && node->return_type->Basic != 2))
 					errorprint(8, children->size, "");
-			}	
+			}
+			else
+				errorprint(8, children->size, "");
 			break;
 		case 5:
-			if (strcmp(children->name, "IF") == 0) Exp(children);
+			if (strcmp(children->name, "IF") == 0) Exp(node->child->brother->brother);
 			else assert(strcmp(children->name, "WHILE") == 0);
 			break;
 		case 7:
@@ -1025,7 +1070,7 @@ void search(Tree* node, int blank)
 			
 			
 			Tree* children = node->child;
-			children->kind = node->kind;
+			children->kind = 2;
 			children->scope = node->scope;
 			Type type = Specifier(children);
 			//node->type = type;
