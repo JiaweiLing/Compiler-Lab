@@ -69,6 +69,16 @@ int insert_symbol_table(symbol_table node)
 		}
 		st = st->next;
 	}
+	struct_table strt = StructDefHash[index];
+	while (st != NULL)
+	{
+		if (strcmp(node->name, strt->name) == 0)
+		{
+			errorprint(3, node->line, node->name);
+			return -1;
+		}
+		strt = strt->next;
+	}
 	if (SymbolTableHash[index] == NULL)
 	{
 		SymbolTableHash[index] = node;

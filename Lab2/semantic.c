@@ -14,7 +14,7 @@ void errorprint(int errorcode, int line, char* name)
 			printf("Error type 1 at Line %d: Undefined variable \"%s\".\n", line, name);
 			break;
 		case 2:
-			printf("Error type 2 at Line %d: Undefined function.\n", line);
+			printf("Error type 2 at Line %d: Undefined function \"%s\".\n", line, name);
 			break;
 		case 3:
 			printf("Error type 3 at Line %d: Redefined variable \"%s\".\n", line, name);
@@ -35,31 +35,31 @@ void errorprint(int errorcode, int line, char* name)
 			printf("Error type 8 at Line %d: Type mismatched for return.\n", line);
 			break;
 		case 9:
-			printf("Error type 9 at Line %d: Function \"func(int)\" is not applicable for arguments \"(int, int)\".\n", line);
+			printf("Error type 9 at Line %d: Function \"%s\" is not applicable for arguments.\n", line, name);
 			break;
 		case 10:
-			printf("Error type 10 at Line %d: is not an array.\n", line);
+			printf("Error type 10 at Line %d: This array is not an array.\n", line);
 			break;
 		case 11:
-			printf("Error type 11 at Line %d: is not a function.\n", line);
+			printf("Error type 11 at Line %d: This function is not a function.\n", line);
 			break;
 		case 12:
-			printf("Error type 12 at Line %d: is not an integer.\n", line);
+			printf("Error type 12 at Line %d: This number is not an integer.\n", line);
 			break;
 		case 13:
-			printf("Error type 13 at Line %d: Illegal use of\n", line);
+			printf("Error type 13 at Line %d: Illegal use of \".\"\n", line);
 			break;
 		case 14:
-			printf("Error type 14 at Line %d: Non-existent field\n", line);
+			printf("Error type 14 at Line %d: Non-existent field \"%s\".\n", line, name);
 			break;
 		case 15:
-			printf("Error type 15 at Line %d: Redefined field\n", line);
+			printf("Error type 15 at Line %d: Redefined field \"%s\".\n", line, name);
 			break;
 		case 16:
 			printf("Error type 16 at Line %d: Duplicated name \"%s\".\n", line, name);
 			break;
 		case 17:
-			printf("Error type 17 at Line %d: Undefined structure\n", line);
+			printf("Error type 17 at Line %d: Undefined structure \"%s\".\n", line, name);
 			break;
 	}
 }
@@ -82,6 +82,32 @@ void Exp(Tree* node);
 void Stmt(Tree* node);
 void StmtList(Tree* node);
 int Args(Tree* node, int num);
+
+void deal_with_value(unsigned value, func_def_table func)
+{
+	if (value != -1)
+	{
+		symbol_table st = (symbol_table)malloc(sizeof(struct SymbolTableNode));
+		strcpy(st->name, func->name);
+		Type type = (Type)malloc(sizeof(struct TYPE));
+		type->Kind = 4;
+		st->type = type;
+		insert_symbol_table(st);
+	}
+}
+Tree *deal_with_children(Tree* children, Tree* node)
+{
+	children->type = node->type;
+	children->kind = node->kind;
+	strcpy(children->struct_name, node->struct_name);
+	return children;
+}
+Tree* deal_with_grandchildren(Tree* grandchildren, Tree* node)
+{
+	grandchildren->scope = node->scope;
+	grandchildren->kind = node->kind;
+	return grandchildren;
+}
 
 Type set_kind(Type type, enum basic_type basic)
 {
@@ -129,6 +155,7 @@ void VarDec_st_Children(Tree* node, symbol_table st, enum var_kind kind)
 	node->symt = st;
 	VarDec(node);
 }
+
 void VarDec(Tree *node)
 {
 	if (node->num == 1)
@@ -208,10 +235,7 @@ void VarDec(Tree *node)
 				strcpy(node->fieldlist->name, node->child->value);
 			}
 		}
-		//else
-		//{
-		//	printf("VarDec node type error!\n");
-		//}
+
 	}
 	else
 	{
@@ -319,6 +343,7 @@ void VarDec(Tree *node)
 		}
 	}
 }
+
 void ParamDec(Tree* node)
 {
 	assert(strcmp(node->name, "ParamDec") == 0);
@@ -349,8 +374,7 @@ void ParamDec(Tree* node)
 	if (type->Kind == 3)
 	{
 		Tree* grandchildren = children->child;
-		grandchildren->scope = node->scope;
-		grandchildren->kind = node->kind;
+		grandchildren = deal_with_grandchildren(grandchildren, node);
 		StructSpecifier(grandchildren);
 		strcpy(node->struct_name, grandchildren->struct_name);
 	}
@@ -393,18 +417,7 @@ void VarList(Tree* node)
 		return;
 	}
 }
-void deal_with_value(unsigned value, func_def_table func)
-{
-	if (value != -1)
-	{
-		symbol_table st = (symbol_table)malloc(sizeof(struct SymbolTableNode));
-		strcpy(st->name, func->name);
-		Type type = (Type)malloc(sizeof(struct TYPE));
-		type->Kind = 4;
-		st->type = type;
-		insert_symbol_table(st);
-	}
-}
+
 void FunDec(Tree* node)
 {
 	func_def_table func = (func_def_table)malloc(sizeof(struct FunctionDefTableNode));
@@ -438,14 +451,7 @@ void FunDec(Tree* node)
 	else
 		return;
 }
-Tree *set_Dec_children(Tree* children, Tree* node)
-{
-	children->type = node->type;
-	children->kind = node->kind;
-	children->strt = node->strt;
-	strcpy(children->struct_name, node->struct_name);
-	return children;
-}
+
 void Dec(Tree* node)
 {
 	//if (node->num == 1)
@@ -456,10 +462,8 @@ void Dec(Tree* node)
 			//node->child->type = type;
 			//VarDec(node->child);
 			//children = node->child;
-			children->type = node->type;
-			children->kind = node->kind;
+			children = deal_with_children(children, node);
 			children->strt = node->strt;
-			strcpy(children->struct_name, node->struct_name);
 			children->first_verdec = 1;
 			VarDec(children);
 		
@@ -470,24 +474,41 @@ void Dec(Tree* node)
 				//children = children->brother->brother;
 				//return;
 			//}
-			if (node->strt->fieldlist == NULL)
+			/*
+			
+			*/
+			FieldList fieldlist = children->strt->fieldlist;
+			int re_def = 0;
+			while (fieldlist != NULL)
 			{
-				children->strt->fieldlist = children->fieldlist;
-				children->fieldlist->next = NULL;
+				if (strcmp(children->fieldlist->name, fieldlist->name) == 0)
+				{
+					errorprint(15, children->size, children->fieldlist->name);
+					re_def = 1;
+					break;
+				}
+				fieldlist = fieldlist->next;
+			}
+			if (!re_def)
+			{
+				if (children->strt->fieldlist == NULL)
+				{
+					children->strt->fieldlist = children->fieldlist;
+					children->fieldlist->next = NULL;
+				}
 			}
 			else
 			{
 				children->fieldlist->next = children->strt->fieldlist;
 				children->strt->fieldlist = children->fieldlist;
 			}
+			
 			node->strt = children->strt;
 			return;
 			break;
 		case 3:
 			//return;
-			children->kind = node->kind;
-			children->type = node->type;
-			strcpy(children->struct_name, node->struct_name);
+			children = deal_with_children(children, node);
 			children->first_verdec = 1;
 			VarDec(children);
 			if (node->num == 1) return;
@@ -521,10 +542,8 @@ void Dec(Tree* node)
 void DecList(Tree* node)
 {
 	Tree* children = node->child;
-	children->type = node->type;
-	children->kind = node->kind;
+	children = deal_with_children(children, node);
 	children->strt = node->strt;
-	strcpy(children->struct_name, node->struct_name);
 	children->scope = node->scope;
 	Dec(children);
 	
@@ -552,10 +571,8 @@ void DecList(Tree* node)
 		//Dec(type, node->child);
 		//DecList(type, node->child->brother->brother);
 		children = children->brother->brother;
-		children->type = node->type;
-		children->kind = node->kind;
+		children = deal_with_children(children, node);
 		children->strt = node->strt;
-		strcpy(children->struct_name, node->struct_name);
 		children->scope = node->scope;
 		DecList(children);
 		switch (node->kind)
@@ -589,18 +606,16 @@ void Def(Tree* node)
 			if (type->Kind == 3)
 			{
 				//grandchildren = children->child;
-				grandchildren->kind = node->kind;
-				grandchildren->scope = node->scope;
+				grandchildren = deal_with_grandchildren(grandchildren, node);
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 				
 			}
 			node->type = type;
 			children = children->brother;
-			children->type = node->type;
-			children->kind = node->kind;
+			children = deal_with_children(children, node);
 			children->strt = node->strt;
-			strcpy(children->struct_name, node->struct_name);
+
 			DecList(children);
 			node->strt = children->strt;
 			break;
@@ -609,17 +624,14 @@ void Def(Tree* node)
 			if (type->Kind == 3)
 			{
 				//grandchildren = children->child;
-				grandchildren->kind = node->kind;
-				grandchildren->scope = node->scope;
+				grandchildren = deal_with_grandchildren(grandchildren, node);
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 				
 			}
 			node->type = type;
 			children = children->brother;
-			children->type = node->type;
-			children->kind = node->kind;
-			strcpy(children->struct_name, node->struct_name);
+			children = deal_with_children(children, node);
 			DecList(children);
 			break;
 		default:
@@ -706,6 +718,9 @@ void StructSpecifier(Tree* node)
 	else
 	{
 		strcpy(node->struct_name, node->child->brother->child->value);
+		struct_table st = search_struct(node);
+		if (st == NULL)
+			errorprint(17, node->child->brother->child->size, node->child->brother->child->value);
 		return; 
 	}
 	
@@ -872,6 +887,9 @@ void Exp(Tree *node)
 								if (Para->type->Kind != 1 ||
 								(Para->type->Kind == 1 && Para->type->Basic != 2))
 									errorprint(9, children->size, func->name);
+							else
+							if (TA->exp == 0)
+								errorprint(9, children->size, func->name);
 							TA = TA->next;
 							Para = Para->next_para;
 						} 
@@ -980,20 +998,16 @@ void StmtList(Tree* node)
 void ExtDecList(Tree* node)
 {
 	Tree* children = node->child;
-	children->kind = node->kind;
 	children->scope = node->scope;
-	children->type = node->type;
-	strcpy(children->struct_name, node->struct_name);
+	children = deal_with_children(children, node);
 	children->first_verdec = 1;
 	VarDec(children);
 	if (node->num == 1) return;
 	else
 	{
 		children = children->brother->brother;
-		children->kind = node->kind;
 		children->scope = node->scope;
-		children->type = node->type;
-		strcpy(children->struct_name, node->struct_name);
+		children = deal_with_children(children, node);
 		ExtDecList(children);
 		return;
 	}
@@ -1057,17 +1071,14 @@ void search(Tree* node, int blank)
 			if (type->Kind == 3)
 			{
 				Tree* grandchildren = children->child;
-				grandchildren->kind = node->kind;
-				grandchildren->scope = node->scope;
+				grandchildren = deal_with_grandchildren(grandchildren, node);
 				StructSpecifier(grandchildren);
 				strcpy(node->struct_name, grandchildren->struct_name);
 			}
 			node->type = type;
 			children = children->brother;
-			children->kind = node->kind;
 			children->scope = node->scope;
-			strcpy(children->struct_name, node->struct_name);
-			children->type = node->type;
+			children = deal_with_children(children, node);
 			ExtDecList(children);
 		}
 	}
