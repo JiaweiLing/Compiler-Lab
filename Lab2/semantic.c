@@ -37,7 +37,7 @@ void errorprint(int errorcode, int line, char* name)
 			printf("Error type 9 at Line %d: Function \"%s\" is not applicable for arguments.\n", line, name);
 			break;
 		case 10:
-			printf("Error type 10 at Line %d: This is not an array.\n", line);
+			printf("Error type 10 at Line %d: This variable is not an array.\n", line);
 			break;
 		case 11:
 			printf("Error type 11 at Line %d: \"%s\" is not a function.\n", line, name);
