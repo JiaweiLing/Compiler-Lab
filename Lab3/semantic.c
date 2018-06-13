@@ -110,7 +110,16 @@ Tree* deal_with_grandchildren(Tree* grandchildren, Tree* node)
 	return grandchildren;
 }
 
-
+Tree* set_node(Tree *node)
+{
+	node->exp = node->child->brother->exp;
+	node->judge_num = node->child->brother->judge_num;
+	node->arraySize = node->child->brother->arraySize;
+	node->arrayType = node->child->brother->arrayType;
+	node->args = node->child->brother->args;
+	node->return_type = node->child->brother->return_type;
+	return node;
+}
 Type set_kind(Type type, enum basic_type basic)
 {
 	type->Kind = 1;
@@ -211,6 +220,9 @@ void VarDec(Tree *node)
 			else
 			{
 				strcpy(node->Para->name, node->child->value);
+				strcpy(node->vt->name, node->child->value);
+				node->vt->line = node->child->size;
+				insert_var_table(node->vt);
 				return;
 			}
 		}
@@ -277,15 +289,26 @@ void VarDec(Tree *node)
 		{
 			if (node->first_verdec)
 			{
+				var_table vt = (var_table)malloc(sizeof(struct VarTableNode));
 				struct para* Para = (struct para*)malloc(sizeof(struct para));
 				Para->type = node->type;
+				vt->type = node->type;
 				if (node->type->Kind == 3)
+				{
 					strcpy(Para->struct_name, node->struct_name);
+					strcpy(vt->struct_name, node->struct_name);
+				}
 				Type type = (Type)malloc(sizeof(struct TYPE));
+				Type TYpe = (Type)malloc(sizeof(struct TYPE));
 				type->Kind = 2;
+				TYpe->Kind = 2;
 				type->Array.size = atoi(node->child->brother->brother->value);
+				TYpe->Array.size = atoi(node->child->brother->brother->value);
+				
 				type->Array.element = Para->type;
+				TYpe->Array.element = vt->type;
 				Para->type = type;
+				vt->type = TYpe;
 				Tree* children = node->child;
 				children->first_verdec = 0;
 				children->kind = node->kind;
@@ -297,15 +320,20 @@ void VarDec(Tree *node)
 			else
 			{
 				Type type = (Type)malloc(sizeof(struct TYPE));
+				var_table vt = (var_table)malloc(sizeof(struct VarTableNode));
 				type->Kind = 2;
+				TYpe->Kind = 2;
 				type->Array.size = atoi(node->child->brother->brother->value);
+				TYpe->Array.size = atoi(node->child->brother->brother->value);
 				type->Array.element = node->Para->type;
+				TYpe->Array.element = node->vt->type;
 				node->Para->type = type;
+				node->vt->type = TYpe;
 				Tree* children = node->child;
 				children->first_verdec = 0;
 				children->kind = node->kind;
 				children->Para = node->Para;
-				
+				children->vt = node->vt;
 				VarDec(children);
 				node->Para = children->Para;
 			}
@@ -867,6 +895,17 @@ void Exp(Tree *node)
 			
 			break;
 		case 2:
+			if (strcmp(node->child->name, "MINUS") == 0)
+			{
+				Exp(node->child->brother);
+				node = set_node(node);
+			}
+			else
+			if (strcmp(node->child->name, "NOT") == 0)
+			{
+				Exp(node->child->brother);
+				node = set_node(node);
+			}
 			break;
 		case 3:
 			children = node->child->brother;
@@ -915,6 +954,30 @@ void Exp(Tree *node)
 				Exp(node->child->brother->brother);
 				if (node->child->exp == node->child->brother->brother->exp)
 					node->exp = node->child->exp;
+			}
+			else 
+			if (strcmp(children->name, "AND") == 0 || strcmp(children->name,"OR")==0)
+			{
+				
+				Exp(node->child);
+
+				Exp(node->child->brother->brother);
+
+
+				if (node->child->exp != 2 || node->child->brother->brother->exp != 2)
+				{
+					errorprint(7, node->child->size, "");
+				}
+				else
+				{
+					node->exp = 2;
+				}
+			}
+			else
+			if (strcmp(children->name, "Exp")==0)
+			{
+				Exp(children);
+				node->exp = children->exp;
 			}
 			else
 			if (strcmp(children->name, "DOT") == 0)
@@ -1108,6 +1171,8 @@ void Stmt(Tree* node)
 	switch (node->num)
 	{
 		case 1:
+			children->kind = node->kind;
+			Compst(children);
 			break;
 		case 2:
 			children->kind = node->kind;
@@ -1132,8 +1197,25 @@ void Stmt(Tree* node)
 				errorprint(8, children->size, "");
 			break;
 		case 5:
-			if (strcmp(children->name, "IF") == 0) Exp(node->child->brother->brother);
-			else {}
+			if (strcmp(children->name, "IF") == 0) 
+			{
+				children = children->brother->brother;
+				children->kind = node->kind;
+				Exp(children);
+				children = children->brother->brother;
+				children->kind = node->kind;
+				Stmt(children);
+			}
+			else
+			{
+				assert(strcmp(children->name, "WHILE") == 0);
+				children = children->brother->brother;
+				children->kind = node->kind;
+				Exp(children);
+				children = children->brother->brother;
+				children->kind = node->kind;
+				Stmt(children);
+			}
 			break;
 		case 7:
 			
@@ -1247,6 +1329,7 @@ void search(Tree* node, int blank)
 void check_semantic(Tree *root)
 {
 	init_hash();
+	readwrite();
 	search(root, 0);
 
 }
