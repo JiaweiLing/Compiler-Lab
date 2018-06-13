@@ -939,6 +939,10 @@ void Exp(Tree *node)
 			{
 				Exp(node->child);
 				Exp(node->child->brother->brother);
+				if (node->child->arrayType != 0)
+					node->child->exp = node->child->arrayType;
+				if (node->child->brother->brother->arrayType != 0)
+					node->child->brother->brother->exp = node->child->brother->brother->arrayType; 
 				if (node->child->exp != node->child->brother->brother->exp ||
 				    (node->child->exp != 2 && node->child->exp != 3) ||
 				    (node->child->brother->brother->exp != 2 && node->child->brother->brother->exp != 3))
@@ -1123,6 +1127,7 @@ void Exp(Tree *node)
 						errorprint(10, node->child->size, "");
 					else
 					{
+						node->exp = node->child->arrayType;
 						children = children->brother->brother;
 						Exp(children);
 						if (children->exp != 2)
