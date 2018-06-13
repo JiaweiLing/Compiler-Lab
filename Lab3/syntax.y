@@ -2,6 +2,7 @@
 	#include<stdio.h>
 	#include<stdlib.h>
 	#include"tree.h"
+	#include"intercode.h"
 	Tree *root_node;
 	int yylex();
 	int yyerror(char *msg);
@@ -16,7 +17,7 @@
 %token <node> INT FLOAT
 %token <node> ID SEMI COMMA ASSIGNOP RELOP PLUS MINUS STAR DIV AND
 %token <node> OR DOT NOT TYPE LP RP LB RB LC RC
-%token <node> STRUCT RETURN IF ELSE WHILE
+%token <node> STRUCT RETURN IF ELSE WHILE READ WRITE
 
 %type <node> Program ExtDefList ExtDef ExtDecList Specifier 
 %type <node> StructSpecifier OptTag Tag VarDec FunDec VarList 
@@ -123,6 +124,8 @@ Exp : Exp ASSIGNOP Exp {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
 	| ID {$$ = AddChild("Exp", -1, 1, $1);}
 	| INT {$$ = AddChild("Exp", -1, 1, $1);}
 	| FLOAT {$$ = AddChild("Exp", -1, 1, $1);}
+	| READ LP RP {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
+	| WRITE LP Exp RP {$$ = AddChild("Exp", -1, 4, $1, $2, $3, $4);}
 	;
 Args : Exp COMMA Args {$$ = AddChild("Args", -1, 3, $1, $2, $3);}
 	| Exp {$$ = AddChild("Args", -1, 1, $1);}
@@ -145,7 +148,7 @@ int main(int argc, char** argv)
 	{
 		//PrintTree(root_node, 0);
 		check_semantic(root_node);
-		
+		translate(root_node);
 	}
 
 }

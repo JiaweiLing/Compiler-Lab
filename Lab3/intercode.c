@@ -4,6 +4,7 @@
 #include"intercode.h"
 #include"tree.h"
 
+
 void translate(Tree *node)
 {
 

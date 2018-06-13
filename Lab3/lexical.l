@@ -34,6 +34,14 @@ return 	{
 		yylval.node = NewNode("RETURN", "none", yylineno);
 		return RETURN;
 	}
+read	{
+		yylval.node = NewNode("READ", "none", yylineno);
+		return READ;
+	}
+write	{
+		yylval.node = NewNode("WRITE", "none", yylineno);
+		return WRITE;
+	}
 if 	{
 		yylval.node = NewNode("IF", "none", yylineno);
 		return IF;
