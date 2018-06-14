@@ -148,7 +148,7 @@ int main(int argc, char** argv)
 	{
 		//PrintTree(root_node, 0);
 		check_semantic(root_node);
-		translate(root_node);
+		translate_Program(root_node);
 	}
 
 }

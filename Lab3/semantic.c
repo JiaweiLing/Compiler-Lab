@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
+#include<assert.h>
 #include"semantic.h"
 #include"symbol_table.h"
 #include"tree.h"
@@ -320,6 +321,7 @@ void VarDec(Tree *node)
 			else
 			{
 				Type type = (Type)malloc(sizeof(struct TYPE));
+				Type TYpe = (Type)malloc(sizeof(struct TYPE));
 				var_table vt = (var_table)malloc(sizeof(struct VarTableNode));
 				type->Kind = 2;
 				TYpe->Kind = 2;
@@ -1334,7 +1336,7 @@ void search(Tree* node, int blank)
 void check_semantic(Tree *root)
 {
 	init_hash();
-	readwrite();
+	//readwrite();
 	search(root, 0);
 
 }
