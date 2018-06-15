@@ -83,7 +83,7 @@ while 	{
 		return ASSIGNOP;
 	}
 ">"|"<"|">="|"<="|"=="|"!=" 	{
-		yylval.node = NewNode("RELOP", "none", yylineno);
+		yylval.node = NewNode("RELOP", yytext, yylineno);
 		return RELOP;
 	}
 "+"	{

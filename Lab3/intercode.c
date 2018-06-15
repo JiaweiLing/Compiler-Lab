@@ -26,6 +26,29 @@ void translate_Exp(Tree *node);
 void translate_Args(Tree *node);
 void translate_Cond(Tree *node);
 
+static int label_num = 0;
+static int temp_num = 0;
+
+Operand new_temp()
+{
+	Operand newtemp = (Operand)malloc(sizeof(struct Operand_));
+	newtemp->kind = 5;
+	temp_num++;
+	newtemp->u.temp_number = temp_num;
+	return newtemp;
+}
+
+Operand new_label()
+{
+	Operand newlabel = (Operand)malloc(sizeof(struct Operand_));
+	newlabel->kind = 6;
+	label_num++;
+	newlabel->u.label_number = label_num;
+	return newlabel;
+}
+
+
+
 void init()
 {
 	Icodes = (InterCodes)malloc(sizeof(struct InterCodes_));
@@ -33,25 +56,36 @@ void init()
 	Icodes->prev = Icodes;
 }
 
-void writecode(FILE *file)
+
+void print(FILE *file)
 {
 	InterCodes p = Icodes;
+	p = p->next;
 	while (p != Icodes)
 	{
+		if (p->code.kind = 11)
+			fprintf(file, "FUNCTION %s :\n", p->code.u.function_dec.op->u.name);
 		p = p->next;
 	}
 }
 
-void insert()
-{
-
-}
-
 void translate(Tree *node, FILE *file)
 {
-	init_code();
+	init();
 	translate_ExtDef(node);
+	print(file);
 }
+
+void insert(InterCodes i_code)
+{
+	InterCodes p = Icodes;
+	p->prev->next = i_code;
+	i_code->next = p;
+	i_code->prev = p->prev;
+	p->prev = i_code;
+}
+
+
 
 void translate_ExtDef(Tree *node)
 {
@@ -84,7 +118,7 @@ void translate_FunDec(Tree *node)
 	Operand op = (Operand)malloc(sizeof(struct Operand_));
 	op->kind = 4;
 	strcpy(op->u.name, node->child->value);
-	i_code->code.u.function_all.op = op;
+	i_code->code.u.function_dec.op = op;
 	insert(i_code);
 }
 
@@ -100,7 +134,8 @@ void translate_ParamDec(Tree *node)
 
 void translate_CompSt(Tree *node)
 {
-
+	translate_DefList(node->child->brother);
+	translate_StmtList(node->child->brother->brother);
 }
 
 void translate_DefList(Tree *node)
@@ -130,12 +165,40 @@ void translate_VarDec(Tree *node)
 
 void translate_StmtList(Tree *node)
 {
-
+	translate_Stmt(node->child);
+	translate_StmtList(node->child->brother);
 }
 
 void translate_Stmt(Tree *node)
 {
-
+	switch (node->num)
+	{
+		case 1:
+			break;
+		case 2:
+			break;
+		case 3:
+			break;
+		case 5:
+			if (strcmp(node->child->name, "IF") == 0)
+			{
+				Operand l1 = new_label();
+				Operand l2 = new_label();
+				InterCodes i_code1 = translate_Cond(node->child->brother->brother, l1, l2);
+				InterCodes i_code2 = translate_Cond(node->child->brother->brother->brother->brother);
+				
+				InterCodes i_code_label1 = (InterCodes)malloc(sizeof(struct InterCodes_));
+				i_code_label1->code.kind = 8;
+				i_code_label1->code.u.label.op = l1;
+				
+				InterCodes i_code_label2 = (InterCodes)malloc(sizeof(struct InterCodes_));
+				i_code_label2->code.kind = 8;
+				i_code_label2->code.u.label.op = l2;
+			}
+			break;
+		case 7:
+			break;
+	}
 }
 
 InterCodes translate_Exp(Tree *node, Operand p)
@@ -172,6 +235,28 @@ void translate_Args(Tree *node)
 
 void translate_Cond(Tree *node)
 {
-
+	if (strcmp(node->child->name, "NOT") != 0)
+	{
+		if (strcmp(node->child->brother->name, "RELOP") == 0)
+		{
+			Operand temp1 = new_temp(), temp2 = new_temp();
+			InterCodes i_code1 = translate_Exp(node->child, temp1);
+			InterCodes i_code2 = translate_Exp(node->child->brother->brother, temp2);
+		}
+		else
+		if (strcmp(node->child->brother->name, "AND") == 0)
+		{
+		
+		}
+		else
+		if (strcmp(node->child->brother->name, "OR") == 0)
+		{
+		
+		}
+		else
+		{
+		
+		}
+	}
 }
 
