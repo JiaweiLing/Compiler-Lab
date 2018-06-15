@@ -4,6 +4,10 @@
 #include"intercode.h"
 #include"tree.h"
 
+Operand new_temp();
+Operand new_label();
+Operand new_relop(Tree *node);
+InterCodes combine(InterCodes i_code1, InterCodes i_code2);
 void init();
 void writecode(FILE *file);
 void insert();
@@ -21,10 +25,10 @@ void translate_DecList(Tree *node);
 void translate_Dec(Tree *node);
 void translate_VarDec(Tree *node);
 void translate_StmtList(Tree *node);
-void translate_Stmt(Tree *node);
-void translate_Exp(Tree *node);
+InterCodes translate_Stmt(Tree *node);
+InterCodes translate_Exp(Tree *node);
 void translate_Args(Tree *node);
-void translate_Cond(Tree *node);
+InterCodes translate_Cond(Tree *node);
 
 static int label_num = 0;
 static int temp_num = 0;
@@ -55,6 +59,14 @@ Operand new_relop(Tree *node)
 	return op;
 }
 
+InterCodes combine(InterCodes i_code1, InterCodes i_code2)
+{
+	i_code1->prev = i_code2->next;
+	i_code2->prev = i_code1->next;
+	i_code1->next->next = i_code2;
+	i_code2->next = i_code1;
+	return i_code1;
+}
 void init()
 {
 	Icodes = (InterCodes)malloc(sizeof(struct InterCodes_));
@@ -177,15 +189,17 @@ void translate_StmtList(Tree *node)
 	translate_StmtList(node->child->brother);
 }
 
-void translate_Stmt(Tree *node)
+InterCodes translate_Stmt(Tree *node)
 {
 	switch (node->num)
 	{
 		case 1:
 			break;
 		case 2:
+			return translate_Exp(node->child, NULL);
 			break;
 		case 3:
+		
 			break;
 		case 5:
 			if (strcmp(node->child->name, "IF") == 0)
@@ -198,10 +212,15 @@ void translate_Stmt(Tree *node)
 				InterCodes i_code_label1 = (InterCodes)malloc(sizeof(struct InterCodes_));
 				i_code_label1->code.kind = 8;
 				i_code_label1->code.u.label.op = l1;
+				i_code_label1->prev = i_code_label1;
+				i_code_label1->next = i_code_label1;
 				
 				InterCodes i_code_label2 = (InterCodes)malloc(sizeof(struct InterCodes_));
 				i_code_label2->code.kind = 8;
 				i_code_label2->code.u.label.op = l2;
+				i_code_label2->prev = i_code_label2;
+				i_code_label2->next = i_code_label2;
+				return combine(combine(i_code1, i_code_label1), combine(i_code2, i_code_label2));
 			}
 			break;
 		case 7:
@@ -249,7 +268,7 @@ void translate_Args(Tree *node)
 
 }
 
-void translate_Cond(Tree *node, Operand True, Operand False)
+InterCodes translate_Cond(Tree *node, Operand True, Operand False)
 {
 	if (strcmp(node->child->name, "NOT") != 0)
 	{
@@ -267,10 +286,16 @@ void translate_Cond(Tree *node, Operand True, Operand False)
 			i_code3->code.u.If.temp1 = temp1;
 			i_code3->code.u.If.temp2 = temp2;
 			i_code3->code.u.If.label = True;
+			i_code3->prev = i_code3;
+			i_code3->next = i_code3;
 			
 			InterCodes i_code4 = (InterCodes)malloc(sizeof(struct InterCodes_));
-			i_code3->code.kind = 7;
-			i_code3->code.u.Goto.label = False;
+			i_code4->code.kind = 7;
+			i_code4->code.u.Goto.label = False;
+			i_code4->prev = i_code4;
+			i_code4->next = i_code4;
+			
+			return combine(combine(i_code1, i_code2), combine(i_code3, i_code4));
 		}
 		else
 		if (strcmp(node->child->brother->name, "AND") == 0)
