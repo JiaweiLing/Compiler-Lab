@@ -47,7 +47,13 @@ Operand new_label()
 	return newlabel;
 }
 
-
+Operand new_relop(Tree *node)
+{
+	Operand op = (Operand)malloc(sizeof(struct Operand_));
+	op->kind = 7;
+	strcpy(op->relop, node->value);
+	return op;
+}
 
 void init()
 {
@@ -119,6 +125,8 @@ void translate_FunDec(Tree *node)
 	op->kind = 4;
 	strcpy(op->u.name, node->child->value);
 	i_code->code.u.function_dec.op = op;
+	i_code->prev = i_code;
+	i_code->next = i_code;
 	insert(i_code);
 }
 
@@ -216,12 +224,20 @@ InterCodes translate_Exp(Tree *node, Operand p)
 				i_code->code.kind = 1;
 				i_code->code.u.assign.left = p;
 				i_code->code.u.assign.right = constant;
+				i_code->prev = i_code;
+				i_code->next = i_code;
+				
 				return i_code;
 			}
 			break;
 		case 2:
 			break;
 		case 3:
+			if (strcmp(node->child->brother->name, "ASSIGNOP") == 0)
+			{
+				Operand temp = new_temp();
+				InterCodes i_code = translate_Exp(node->child->brother->brother, temp);
+			}
 			break;
 		case 4:
 			break;
@@ -233,15 +249,28 @@ void translate_Args(Tree *node)
 
 }
 
-void translate_Cond(Tree *node)
+void translate_Cond(Tree *node, Operand True, Operand False)
 {
 	if (strcmp(node->child->name, "NOT") != 0)
 	{
 		if (strcmp(node->child->brother->name, "RELOP") == 0)
 		{
 			Operand temp1 = new_temp(), temp2 = new_temp();
+			Operand op = new_relop(node->child->brother);
+			
 			InterCodes i_code1 = translate_Exp(node->child, temp1);
 			InterCodes i_code2 = translate_Exp(node->child->brother->brother, temp2);
+			
+			InterCodes i_code3 = (InterCodes)malloc(sizeof(struct InterCodes_));
+			i_code3->code.kind = 6;
+			i_code3->code.u.If.op = op;
+			i_code3->code.u.If.temp1 = temp1;
+			i_code3->code.u.If.temp2 = temp2;
+			i_code3->code.u.If.label = True;
+			
+			InterCodes i_code4 = (InterCodes)malloc(sizeof(struct InterCodes_));
+			i_code3->code.kind = 7;
+			i_code3->code.u.Goto.label = False;
 		}
 		else
 		if (strcmp(node->child->brother->name, "AND") == 0)

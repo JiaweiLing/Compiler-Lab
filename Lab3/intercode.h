@@ -3,12 +3,13 @@ typedef struct InterCodes_* InterCodes;
 
 struct Operand_ 
 {
-	enum {VARIABLE = 1, CONSTANT = 2, ADDRESS = 3, FUNCTIONNAME = 4, TEMP = 5, LABEL = 6} kind;
+	enum {VARIABLE = 1, CONSTANT = 2, ADDRESS = 3, FUNCTIONNAME = 4, TEMP = 5, LABEL = 6, RELOP = 7} kind;
 	union
 	{
 		int var_number, temp_number, label_number;
 		int value;
 		char name[100];
+		char relop[100];
 	} u;
 };
 struct InterCode
@@ -21,6 +22,8 @@ struct InterCode
 		struct { Operand op; } function_dec;
 		struct { Operand op; } function_all;
 		struct { Operand op; } label;
+		struct { Operand op, temp1, temp2, label; } If;
+		struct { Operand label; } Goto;
 	} u;
 }
 struct InterCodes_
