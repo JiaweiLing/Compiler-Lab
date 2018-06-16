@@ -4,9 +4,7 @@
 #include"intercode.h"
 #include"tree.h"
 
-Operand new_temp();
-Operand new_label();
-Operand new_relop(Tree *node);
+Operand new_element(Tree *node, int identify);
 InterCodes combine(InterCodes i_code1, InterCodes i_code2);
 void init();
 void writecode(FILE *file);
@@ -32,31 +30,56 @@ InterCodes translate_Cond(Tree *node);
 
 static int label_num = 0;
 static int temp_num = 0;
+static int var_num = 0;
 
-Operand new_temp()
-{
-	Operand newtemp = (Operand)malloc(sizeof(struct Operand_));
-	newtemp->kind = 5;
-	temp_num++;
-	newtemp->u.temp_number = temp_num;
-	return newtemp;
-}
-
-Operand new_label()
-{
-	Operand newlabel = (Operand)malloc(sizeof(struct Operand_));
-	newlabel->kind = 6;
-	label_num++;
-	newlabel->u.label_number = label_num;
-	return newlabel;
-}
-
-Operand new_relop(Tree *node)
+Operand new_element(Tree *node, int identify)
 {
 	Operand op = (Operand)malloc(sizeof(struct Operand_));
-	op->kind = 7;
-	strcpy(op->relop, node->value);
-	return op;
+	switch (identify)
+	{
+		case 1:
+			op->kind = 1;
+			var_num++;
+			op->u.var_num = var_num;
+			return op;
+			break;
+		case 5:
+			op->kind = 5;
+			temp_num++;
+			op->u.temp_number = temp_num;
+			return op;
+			break;
+		case 6:
+			op->kind = 6;
+			label_num++;
+			op->u.label_number = label_num;
+			return op;
+			break;
+		case 7:
+			op->kind = 7;
+			strcpy(op->relop, node->value);
+			return op;
+			break;
+		default:
+			break;
+	}
+}
+
+int search_var(Tree *node)
+{
+	Varcode vc = var_code;
+	for (; vc; vc = vc->next)
+		if (strcmp(vc->var_name, node->value) == 0)
+		{
+			return vc->var_num;
+		}
+	return -1;
+}
+
+void insert_var(Varcode vc)
+{
+	vc->next = var_code->next;
+	var_code = vc;
 }
 
 InterCodes combine(InterCodes i_code1, InterCodes i_code2)
@@ -72,6 +95,8 @@ void init()
 	Icodes = (InterCodes)malloc(sizeof(struct InterCodes_));
 	Icodes->next = Icodes;
 	Icodes->prev = Icodes;
+	
+	var_code = NULL;
 }
 
 
@@ -204,8 +229,8 @@ InterCodes translate_Stmt(Tree *node)
 		case 5:
 			if (strcmp(node->child->name, "IF") == 0)
 			{
-				Operand l1 = new_label();
-				Operand l2 = new_label();
+				Operand l1 = new_element(node->child, 6);
+				Operand l2 = new_element(node->child, 6);
 				InterCodes i_code1 = translate_Cond(node->child->brother->brother, l1, l2);
 				InterCodes i_code2 = translate_Cond(node->child->brother->brother->brother->brother);
 				
@@ -224,6 +249,8 @@ InterCodes translate_Stmt(Tree *node)
 			}
 			break;
 		case 7:
+			break;
+		default:
 			break;
 	}
 }
@@ -248,17 +275,34 @@ InterCodes translate_Exp(Tree *node, Operand p)
 				
 				return i_code;
 			}
+			else
+			if (strcmp(node->child->name, "ID") == 0)
+			{
+				Operand var = new_element(node->child, 1);
+				int varnum = search_var(node->child);
+				if (varnum == -1)
+				{
+					Varcode vc = (Varcode)malloc(sizeof(struct Varcode_));
+					strcpy(vc->var_name, node->child->value);
+					vc->var_num = var->u.var_num;
+					insert_var(vc);
+				}
+				else
+					var->u.var_num = varnum;
+			}
 			break;
 		case 2:
 			break;
 		case 3:
 			if (strcmp(node->child->brother->name, "ASSIGNOP") == 0)
 			{
-				Operand temp = new_temp();
+				Operand temp = new_element(node, 5);
 				InterCodes i_code = translate_Exp(node->child->brother->brother, temp);
 			}
 			break;
 		case 4:
+			break;
+		default:
 			break;
 	}
 }
@@ -274,8 +318,8 @@ InterCodes translate_Cond(Tree *node, Operand True, Operand False)
 	{
 		if (strcmp(node->child->brother->name, "RELOP") == 0)
 		{
-			Operand temp1 = new_temp(), temp2 = new_temp();
-			Operand op = new_relop(node->child->brother);
+			Operand temp1 = new_element(node->child->brother, 5), temp2 = new_element(node->child->brother, 5);
+			Operand op = new_element(node->child->brother, 7);
 			
 			InterCodes i_code1 = translate_Exp(node->child, temp1);
 			InterCodes i_code2 = translate_Exp(node->child->brother->brother, temp2);
