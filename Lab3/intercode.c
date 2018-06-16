@@ -32,6 +32,29 @@ static int label_num = 0;
 static int temp_num = 0;
 static int var_num = 0;
 
+void op_print(Operand op, FILE *file)
+{
+	if (op->kind == 1)
+		fprintf(file, "v%d", op->u.var_number);
+	else
+	if (op->kind == 2)
+		fprintf(file, "#%d", op->u.value);
+	else
+	if (op->kind == 3)
+		{;}
+	else
+	if (op->kind == 4)
+		fprintf(file, "%s", op->u.name);
+	else
+	if (op->kind == 5)
+		fprintf(file, "t%d", op->u.temp_number);
+	else
+	if (op->kind == 6)
+		fprintf(file, "label%d", op->u.label_number);
+	else
+	if (op->kind == 7)
+		fprintf(file, "%s", op->u.relop);
+}
 Operand new_element(Tree *node, int identify)
 {
 	Operand op = (Operand)malloc(sizeof(struct Operand_));
@@ -57,7 +80,7 @@ Operand new_element(Tree *node, int identify)
 			break;
 		case 7:
 			op->kind = 7;
-			strcpy(op->relop, node->value);
+			strcpy(op->u.relop, node->value);
 			return op;
 			break;
 		default:
@@ -90,6 +113,7 @@ InterCodes combine(InterCodes i_code1, InterCodes i_code2)
 	i_code2->next = i_code1;
 	return i_code1;
 }
+
 void init()
 {
 	Icodes = (InterCodes)malloc(sizeof(struct InterCodes_));
@@ -100,14 +124,133 @@ void init()
 }
 
 
-void print(FILE *file)
+void print(FILE *fp)
 {
 	InterCodes p = Icodes;
 	p = p->next;
 	while (p != Icodes)
 	{
-		if (p->code.kind = 11)
-			fprintf(file, "FUNCTION %s :\n", p->code.u.function_dec.op->u.name);
+		if (p->code.kind == 1)
+		{
+			Operand op = p->code.u.assign.left;
+			op_print(op, file);
+			fprintf(file, " := ");
+			op = p->code.u.assign.right;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 2 || p->code.kind == 3 || p->code.kind == 4 || p->code.kind == 17)
+		{
+			Operand op = p->code.u.binop.result;
+			op_print(op, file);
+			fprintf(file, " := ");
+			op = p->code.u.binop.op1;
+			op_print(op, file);
+			switch (p->code.kind)
+			{
+				case 2:
+					fprintf(file, " + ");
+					break;
+				case 3:
+					fprintf(file, " - ");
+					break;
+				case 4:
+					fprintf(file, " * ");
+					break;
+				case 17:
+					fprintf(file, " / ");
+					break;
+				default:
+					break;
+			}
+			op = p->code.u.binop.op2;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 5)
+		{
+			fprintf(file, "RETURN ");
+			Operand op = p->code.u.ret_code.ret_value;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 6)
+		{
+			fprintf(file, "IF ");
+			Operand op = p->code.u.If.temp1;
+			op_print(op, file);
+			fprintf(file, " ");
+			op = p->code.u.If.op;
+			op_print(op, file);
+			fprintf(file, " ");
+			op = p->code.u.If.temp2;
+			op_print(op, file);
+			fprintf(file, " GOTO ");
+			op = p->code.u.If.label;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 7)
+		{
+			fprintf(file, "GOTO ");
+			Operand op = p->code.u.Goto.label;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 8)
+		{
+			fprintf(file, "LABEL ");
+			Operand op = p->code.u.label.op;
+			op_print(op, file);
+			fprintf(file, " :\n");
+		}
+		else
+		if (p->code.kind == 9)
+		{
+			fprintf(file, "READ ");
+			Operand op = p->code.u.read.op;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 10)
+		{
+			fprintf(file, "WRITE ");
+			Operand op = p->code.u.write.op;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 11)
+		{
+			fprintf(file, "FUNCTION ");
+			Operand op = p->code.u.function_dec.op;
+			op_print(op, file);
+			fprintf(file, " :\n");
+		}
+		else
+		if (p->code.kind == 12)
+		{
+			fprintf(file, "ARG ");
+			Operand op = p->code.u.arg.op;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
+		else
+		if (p->code.kind == 15)
+		{
+			Operand op = p->code.u.function_call.ret;
+			op_print(op, file);
+			fprintf(file, " := CALL ");
+			op = p->code.u.function_call.func;
+			op_print(op, file);
+			fprintf(file, "\n");
+		}
 		p = p->next;
 	}
 }
@@ -121,11 +264,13 @@ void translate(Tree *node, FILE *file)
 
 void insert(InterCodes i_code)
 {
-	InterCodes p = Icodes;
-	p->prev->next = i_code;
-	i_code->next = p;
-	i_code->prev = p->prev;
-	p->prev = i_code;
+	assert(i_code != NULL);
+	InterCodes temp = Icodes;
+	temp->prev->next = i_code;
+	i_code->prev->next = temp;
+	InterCodes p = i_code->prev;
+	i_code->prev = temp->prev;
+	temp->prev = p;
 }
 
 
@@ -210,8 +355,10 @@ void translate_VarDec(Tree *node)
 
 void translate_StmtList(Tree *node)
 {
-	translate_Stmt(node->child);
-	translate_StmtList(node->child->brother);
+	if (node->num == 0) return NULL;
+	InterCodes i_code1 = translate_Stmt(node->child);
+	InterCodes i_code2 = translate_StmtList(node->child->brother);
+	if (i_code2 == NULL) return i_code1; else return combine(i_code1, i_code2);
 }
 
 InterCodes translate_Stmt(Tree *node)
@@ -289,6 +436,15 @@ InterCodes translate_Exp(Tree *node, Operand p)
 				}
 				else
 					var->u.var_num = varnum;
+				InterCodes i_code = (InterCodes)malloc(sizeof(struct InterCodes_));
+				i_code->code.kind = 1;
+				i_code->code.u.assign.left = p;
+				i_code->code.u.assign.right = var;
+				i_code->prev = i_code;
+				i_code->next = i_code;
+				
+				return i_code;
+				
 			}
 			break;
 		case 2:
@@ -296,8 +452,18 @@ InterCodes translate_Exp(Tree *node, Operand p)
 		case 3:
 			if (strcmp(node->child->brother->name, "ASSIGNOP") == 0)
 			{
-				Operand temp = new_element(node, 5);
-				InterCodes i_code = translate_Exp(node->child->brother->brother, temp);
+				InterCodes i_code = translate_Exp(node->child->brother, p);
+				
+				Operand temp = new_element(node->child->brother, 5);
+				InterCodes i_code1 = translate_Exp(node->child->brother->brother, temp);
+				InterCodes i_code2 = (InterCodes)malloc(sizeof(struct InterCodes_));
+				i_code2->code.kind = 16;
+				i_code2->code.u.assign.left = i_code->code.u.assign.right;
+				i_code2->code.u.assign.right = temp;
+				i_code2->prev = i_code2;
+				i_code2->next = i_code2;
+				
+				return combine(i_code1, combine(i_code, i_code2));
 			}
 			break;
 		case 4:

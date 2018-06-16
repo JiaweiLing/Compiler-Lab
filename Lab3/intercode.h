@@ -1,5 +1,6 @@
 typedef struct Operand_* Operand;
 typedef struct InterCodes_* InterCodes;
+typedef struct Varcode_* Varcode;
 
 struct Operand_ 
 {
@@ -11,19 +12,24 @@ struct Operand_
 		char name[100];
 		char relop[100];
 	} u;
+	Operand next;
 };
 struct InterCode
 {
-	enum {ASSIGN = 1, ADD = 2, SUB = 3, MUL = 4, RETURN = 5, IF = 6, GOTO = 7, LABEL = 8, READ = 9, WRITE = 10, FUNCTION = 11, ARG = 12, PARAM = 13, DEC = 14, CALL = 15} kind;
+	enum {ASSIGN = 1, ADD = 2, SUB = 3, MUL = 4, RETURN = 5, IF = 6, GOTO = 7, LABEL = 8, READ = 9, WRITE = 10, FUNCTION = 11, ARG = 12, PARAM = 13, DEC = 14, CALL = 15, ASSIGNOP = 16, DIV = 17} kind;
 	union
 	{
 		struct { Operand right, left; } assign;
 		struct { Operand result, op1, op2; } binop;
+		struct { Operand ret_value; } ret_code;
 		struct { Operand op; } function_dec;
-		struct { Operand op; } function_all;
+		struct { Operand ret, func; } function_call;
 		struct { Operand op; } label;
 		struct { Operand op, temp1, temp2, label; } If;
 		struct { Operand label; } Goto;
+		struct { Operand op; } read;
+		struct { Operand op; } write;
+		struct { Operand op; } arg;
 	} u;
 }
 struct InterCodes_
@@ -31,3 +37,10 @@ struct InterCodes_
 	InterCode code;
 	struct InterCodes_ *prev, *next;
 };
+struct Varcode_
+{
+	char var_name[100];
+	int var_num;
+	Varcode next;
+}
+Varcode var_code;
