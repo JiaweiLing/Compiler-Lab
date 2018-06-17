@@ -89,5 +89,5 @@ struct FIELDLIST
 };
 
 void errorprint(int errorcode, int line, char* name);
-
+void readwrite();
 #endif

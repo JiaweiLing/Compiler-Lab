@@ -29,7 +29,7 @@ void readwrite_table(int identify)
 {
 	var_table var = (var_table)malloc(sizeof(struct VarTableNode));
 	Type type = (Type)malloc(sizeof(struct TYPE));
-	type->kind = 4;
+	type->Kind = 4;
 	var->type = type;
 	if (identify == 1) strcpy(var->name, "read");
 	else strcpy(var->name, "write");
@@ -45,11 +45,11 @@ void readwrite()
 	
 	struct para* Para = (struct para*)malloc(sizeof(struct para));
 	Type type = (Type)malloc(sizeof(struct TYPE));
-	type->kind = 1;
-	type->basic = 1;
+	type->Kind = 1;
+	type->Basic = 1;
 	Para->type = type;
 	Para->next_para = NULL;
-	write->list_para = para;
+	write->list_para = Para;
 	
 	read->next = NULL;
 	write->next = NULL;

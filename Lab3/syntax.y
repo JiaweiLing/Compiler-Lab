@@ -17,7 +17,7 @@
 %token <node> INT FLOAT
 %token <node> ID SEMI COMMA ASSIGNOP RELOP PLUS MINUS STAR DIV AND
 %token <node> OR DOT NOT TYPE LP RP LB RB LC RC
-%token <node> STRUCT RETURN IF ELSE WHILE READ WRITE
+%token <node> STRUCT RETURN IF ELSE WHILE
 
 %type <node> Program ExtDefList ExtDef ExtDecList Specifier 
 %type <node> StructSpecifier OptTag Tag VarDec FunDec VarList 
@@ -124,14 +124,13 @@ Exp : Exp ASSIGNOP Exp {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
 	| ID {$$ = AddChild("Exp", -1, 1, $1);}
 	| INT {$$ = AddChild("Exp", -1, 1, $1);}
 	| FLOAT {$$ = AddChild("Exp", -1, 1, $1);}
-	| READ LP RP {$$ = AddChild("Exp", -1, 3, $1, $2, $3);}
-	| WRITE LP Exp RP {$$ = AddChild("Exp", -1, 4, $1, $2, $3, $4);}
 	;
 Args : Exp COMMA Args {$$ = AddChild("Args", -1, 3, $1, $2, $3);}
 	| Exp {$$ = AddChild("Args", -1, 1, $1);}
 	;
 %%
 #include"lex.yy.c"
+extern FILE* yyin;
 int main(int argc, char** argv) 
 {
 	if (argc <= 1) return 1;
@@ -143,12 +142,22 @@ int main(int argc, char** argv)
 	}
 	
 	yyrestart(f);
-	yyparse();
+	yyin = f;
+	
+	FILE* file = fopen(argv[2], "w");
+	if (!file)
+	{
+		perror(argv[2]);
+		return 1;
+	}
+	while (!feof(yyin)) yyparse();
+	
 	if (!error_state) 
 	{
 		//PrintTree(root_node, 0);
 		check_semantic(root_node);
-		translate(root_node);
+		//printf("1\n");
+		translate(root_node, file);
 	}
 
 }

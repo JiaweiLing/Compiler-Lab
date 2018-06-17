@@ -1,10 +1,18 @@
+#ifndef INTERCODE_H_
+#define INTERCODE_H_
+#include "semantic.h"
+#include "tree.h"
 typedef struct Operand_* Operand;
 typedef struct InterCodes_* InterCodes;
 typedef struct Varcode_* Varcode;
 
+enum Operand_kind {_VARIABLE = 1, _CONSTANT = 2, _ADDRESS = 3, _FUNCTIONNAME = 4, _TEMP = 5, _LABEL = 6, _RELOP = 7};
+
+enum InterCodes_kind {ASSIGN_ = 1, ADD_ = 2, SUB_ = 3, MUL_ = 4, RETURN_ = 5, IF_ = 6, GOTO_ = 7, LABEL_ = 8, READ_ = 9, WRITE_ = 10, FUNCTION_ = 11, ARG_ = 12, PARAM_ = 13, DEC_ = 14, CALL_ = 15, ASSIGNOP_ = 16, DIV_ = 17};
+
 struct Operand_ 
 {
-	enum {VARIABLE = 1, CONSTANT = 2, ADDRESS = 3, FUNCTIONNAME = 4, TEMP = 5, LABEL = 6, RELOP = 7} kind;
+	enum Operand_kind kind;
 	union
 	{
 		int var_number, temp_number, label_number;
@@ -16,7 +24,7 @@ struct Operand_
 };
 struct InterCode
 {
-	enum {ASSIGN = 1, ADD = 2, SUB = 3, MUL = 4, RETURN = 5, IF = 6, GOTO = 7, LABEL = 8, READ = 9, WRITE = 10, FUNCTION = 11, ARG = 12, PARAM = 13, DEC = 14, CALL = 15, ASSIGNOP = 16, DIV = 17} kind;
+	enum InterCodes_kind kind;
 	union
 	{
 		struct { Operand right, left; } assign;
@@ -30,11 +38,12 @@ struct InterCode
 		struct { Operand op; } read;
 		struct { Operand op; } write;
 		struct { Operand op; } arg;
+		struct { Operand op; } param;
 	} u;
-}
+};
 struct InterCodes_
 {
-	InterCode code;
+	struct InterCode code;
 	struct InterCodes_ *prev, *next;
 };
 struct Varcode_
@@ -42,5 +51,8 @@ struct Varcode_
 	char var_name[100];
 	int var_num;
 	Varcode next;
-}
+};
 Varcode var_code;
+struct InterCodes_ *Icodes;
+void translate(Tree *node, FILE *file);
+#endif

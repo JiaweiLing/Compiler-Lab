@@ -1336,7 +1336,7 @@ void search(Tree* node, int blank)
 void check_semantic(Tree *root)
 {
 	init_hash();
-	//readwrite();
+	readwrite();
 	search(root, 0);
 
 }
