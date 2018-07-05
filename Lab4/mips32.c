@@ -4,6 +4,12 @@
 #include<string.h>
 #include"mips32.h"
 
+void init_reg();
+int get_reg();
+void print_reg(FILE *file, int i);
+void deal(FILE *file, int i, Operand op);
+void mips_code(FILE *file);
+void transform(FILE *file);
 
 void init_reg()
 {
@@ -19,121 +25,121 @@ int get_reg()
 	return -1;
 }
 
-void print_reg(int i)
+void print_reg(FILE *file, int i)
 {
 	switch (i)
 	{
 		case 0:
-			fprintf(fp, "$0");
+			fprintf(file, "$0");
 			break;
 		case 1:
-			fprintf(fp, "at");
+			fprintf(file, "at");
 			break;
 		case 2:
-			fprintf(fp, "v0");
+			fprintf(file, "v0");
 			break;
 		case 3:
-			fprintf(fp, "v1");
+			fprintf(file, "v1");
 			break;
 		case 4:
-			fprintf(fp, "a0");
+			fprintf(file, "a0");
 			break;
 		case 5:
-			fprintf(fp, "a1");
+			fprintf(file, "a1");
 			break;
 		case 6:
-			fprintf(fp, "a2");
+			fprintf(file, "a2");
 			break;
 		case 7:
-			fprintf(fp, "a3");
+			fprintf(file, "a3");
 			break;
 		
 		case 8:
-			fprintf(fp, "t0");
+			fprintf(file, "t0");
 			break;
 		case 9:
-			fprintf(fp, "t1");
+			fprintf(file, "t1");
 			break;
 		case 10:
-			fprintf(fp, "t2");
+			fprintf(file, "t2");
 			break;
 		case 11:
-			fprintf(fp, "t3");
+			fprintf(file, "t3");
 			break;
 		case 12:
-			fprintf(fp, "t4");
+			fprintf(file, "t4");
 			break;
 		case 13:
-			fprintf(fp, "t5");
+			fprintf(file, "t5");
 			break;
 		case 14:
-			fprintf(fp, "t6");
+			fprintf(file, "t6");
 			break;
 		case 15:
-			fprintf(fp, "t7");
+			fprintf(file, "t7");
 			break;
 		
 		case 16:
-			fprintf(fp, "s0");
+			fprintf(file, "s0");
 			break;
 		case 17:
-			fprintf(fp, "s1");
+			fprintf(file, "s1");
 			break;
 		case 18:
-			fprintf(fp, "s2");
+			fprintf(file, "s2");
 			break;
 		case 19:
-			fprintf(fp, "s3");
+			fprintf(file, "s3");
 			break;
 		case 20:
-			fprintf(fp, "s4");
+			fprintf(file, "s4");
 			break;
 		case 21:
-			fprintf(fp, "s5");
+			fprintf(file, "s5");
 			break;
 		case 22:
-			fprintf(fp, "s6");
+			fprintf(file, "s6");
 			break;
 		case 23:
-			fprintf(fp, "s7");
+			fprintf(file, "s7");
 			break;
 		
 		case 24:
-			fprintf(fp, "t8");
+			fprintf(file, "t8");
 			break;
 		case 25:
-			fprintf(fp, "t9");
+			fprintf(file, "t9");
 			break;
 		
 		case 26:
-			fprintf(fp, "k0");
+			fprintf(file, "k0");
 			break;
 		case 27:
-			fprintf(fp, "k1");
+			fprintf(file, "k1");
 			break;
 			
 		case 28:
-			fprintf(fp, "gp");
+			fprintf(file, "gp");
 			break;
 		case 29:
-			fprintf(fp, "sp");
+			fprintf(file, "sp");
 			break;
 		case 30:
-			fprintf(fp, "fp");
+			fprintf(file, "fp");
 			break;
 		case 31:
-			fprintf(fp, "ra");
+			fprintf(file, "ra");
 			break;
 		case 0:
-			fprintf(fp, "$0");
+			fprintf(file, "$0");
 			break;
 	}
 }
 void deal(FILE *file, int i, Operand op)
 {
-	fprintf(fp, "  sw $");
-	print_reg(i);
-	fprintf(fp, ", %d($fp)\n", op->offset);
+	fprintf(file, "  sw $");
+	print_reg(file, i);
+	fprintf(file, ", %d($fp)\n", op->offset);
 	reg[i] = 0;
 }
 
@@ -167,6 +173,12 @@ void mips_code(FILE *file)
 	transform(file);
 }
 
+void print_lw(FILE *file, int reg, int offset)
+{
+	fprintf(file, "  lw $");
+	print_reg(file, reg);
+	fprintf(file, ", %d($fp)\n", offset);
+}
 void transform(FILE *file)
 {
 	InterCodes p = Icodes;
@@ -176,7 +188,16 @@ void transform(FILE *file)
 		if (p->code.kind == 11)
 		{
 			Operand op = p->code.u.function_dec.op;
+			func_op = op;
+			
 			fprintf(file, "%s:\n", op->u.name);
+			
+			fprintf(file, "  addi $sp, $sp, -8\n");
+			fprintf(file, "  sw $ra, 8($sp)\n");
+			fprintf(file, "  sw $fp, 4($sp)\n");
+			fprintf(file, "  move $fp, $sp\n");
+			
+			fprintf(file, "  addi $sp, $sp, %d\n", op->size);
 		}
 		else
 		if (p->code.kind == 8)
@@ -190,13 +211,29 @@ void transform(FILE *file)
 			Operand op1 = p->code.u.assign.left;
 			Operand op2 = p->code.u.assign.right;
 			
-			int reg1 = get_reg(op1);
-			int reg2 = get_reg(op2);
+			int reg1 = get_reg();
+			int reg2 = get_reg();
 			
 			if (op2->kind == 2)
-				fprintf(file, "  li $t%d, %d\n", reg1, op2->u.value);
+			{
+				fprintf(file, "  li $");
+				print_reg(file, reg1);
+				fprintf(file, ", %d\n", op2->u.value);
+				deal(file, reg1, op1);
+			}
 			else
-				fprintf(file, "  move $t%d, $t%d\n", reg1, reg2);
+			{
+				print_lw(file, reg2, op2->offset);
+				
+				fprintf(file, "  move $");
+				print_reg(file, reg1);
+				fprintf(file, ", $");
+				print_reg(file, reg2);
+				fprintf(file, "\n");
+				
+				deal(file, reg1, op1);
+				deal(file, reg2, op2);
+			}
 		}
 		else
 		if (p->code.kind == 2)
@@ -205,54 +242,58 @@ void transform(FILE *file)
 			Operand op2 = p->code.u.binop.op1;
 			Operand op3 = p->code.u.binop.op2;
 			
-			int reg1 = get_reg(op1);
-			int reg2 = get_reg(op2);
-			int reg3 = get_reg(op3);
+			int reg1 = get_reg();
+			int reg2 = get_reg();
+			int reg3 = get_reg();
 			
-			fprintf(file, "  add $t%d, $t%d, $t%d\n", reg1, reg2, reg3);
+			print_lw(file, reg2, op2->offset);
+			
+			print_lw(file, reg3, op3->offset);
+			
+			fprintf(file, "  add $");
+			print_reg(file, reg1);
+			fprintf(file, ", $");
+			print_reg(file, reg2);
+			fprintf(file, ", $");
+			print_reg(file, reg3);
+			fprintf(file, "\n");
+				
+			deal(file, reg1, op1);
+			deal(file, reg2, op2);
+			deal(file, reg3, op3);
+			
+			fprintf(file, "add\n");
 		}
 		else
 		if (p->code.kind == 3)
 		{
-			Operand op1 = p->code.u.binop.result;
-			Operand op2 = p->code.u.binop.op1;
-			Operand op3 = p->code.u.binop.op2;
-			
-			int reg1 = get_reg(op1);
-			int reg2 = get_reg(op2);
-			int reg3 = get_reg(op3);
-			
-			fprintf(file, "  sub $t%d, $t%d, $t%d\n", reg1, reg2, reg3);
 		}
 		else
 		if (p->code.kind == 4)
 		{
-			Operand op1 = p->code.u.binop.result;
-			Operand op2 = p->code.u.binop.op1;
-			Operand op3 = p->code.u.binop.op2;
-			
-			int reg1 = get_reg(op1);
-			int reg2 = get_reg(op2);
-			int reg3 = get_reg(op3);
-			
-			fprintf(file, "  mul $t%d, $t%d, $t%d\n", reg1, reg2, reg3);
 		}
 		else
 		if (p->code.kind == 17)
 		{
-			Operand op1 = p->code.u.binop.result;
-			Operand op2 = p->code.u.binop.op1;
-			Operand op3 = p->code.u.binop.op2;
-			
-			int reg1 = get_reg(op1);
-			int reg2 = get_reg(op2);
-			int reg3 = get_reg(op3);
-			
-			fprintf(file, "  div $t%d, $t%d, $t%d\n", reg1, reg2, reg3);
 		}
 		else
 		if (p->code.kind == 5)
-		{}
+		{
+			Operand op = p->code.u.ret_code.ret_value;
+			int reg = get_reg();
+			
+			print_lw(file, reg, op->offset);
+			
+			fprintf(file, "  move $v0, $");
+			print_reg(file, reg);
+			fprintf(file, "\n");
+			
+			fprintf(file, "  lw $ra, 8($fp)\n");
+			fprintf(file, "  lw $fp, 4($fp)\n");
+			fprintf(file, "  addi $sp, $sp, %d\n", -func_op->size);
+			fprintf(file, "  jr $ra\n");
+			fprintf(file, "ret\n");
+		}
 		else
 		if (p->code.kind == 6)
 		{}
@@ -261,10 +302,31 @@ void transform(FILE *file)
 		{}
 		else
 		if (p->code.kind == 9)
-		{}
+		{
+			fprintf(file, "  jal read\n");
+			Operand op = p->code.u.read.op;
+			int reg = get_reg();
+			
+			fprintf(file, "  move $");
+			print_reg(file, reg);
+			fprintf(file, ", $v0\n");
+			
+			deal(file, reg, op);
+			fprintf(file, "read\n");
+		}
 		else
 		if (p->code.kind == 10)
-		{}
+		{
+			Operand op = p->code.u.write.op;
+			int reg = get_reg();
+			
+			print_lw(file, reg, op->offset);
+			fprintf(file, "  move $a0, $");
+			print_reg(file, reg);
+			fprintf(file, "\n");
+			fprintf(file, "  jal write\n");
+			fprintf(file, "write\n");
+		}
 		else
 		if (p->code.kind == 12)
 		{}
