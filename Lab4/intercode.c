@@ -282,13 +282,16 @@ void print(FILE *file)
 	}
 }
 
-void translate(Tree *node, FILE *file)
+void translate(Tree *node, FILE* fp, FILE *file)
 {
 	init();
 	//printf("0\n");
 	translate_ExtDef(node);
 	//printf("1\n");
-	print(file);
+	print(fp);
+	mips_code(file);
+	fclose(fp);
+	fclose(file);
 	//printf("2\n");
 }
 

@@ -54,5 +54,6 @@ struct Varcode_
 };
 Varcode var_code;
 struct InterCodes_ *Icodes;
-void translate(Tree *node, FILE *file);
+void translate(Tree *node, FILE *fp, FILE *file);
+void mips_code(FILE *file);
 #endif

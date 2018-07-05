@@ -4,7 +4,7 @@ BISON = bison
 CFLAGS = -std=c99
 
 parser: syntax.tab.c tree.c
-	$(GCC) tree.c readwrite.c semantic.c symbol_table_operation.c intercode.c syntax.tab.c -lfl -ly -o parser
+	$(GCC) tree.c readwrite.c semantic.c symbol_table_operation.c intercode.c mips32.c syntax.tab.c -lfl -ly -o parser
 
 syntax.tab.c: syntax.y lex.yy.c
 	$(BISON) -d syntax.y

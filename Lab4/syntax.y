@@ -144,6 +144,13 @@ int main(int argc, char** argv)
 	yyrestart(f);
 	yyin = f;
 	
+	FILE* fp = fopen("out.ir", "w");
+	if (!fp)
+	{
+		perror("out.ir");
+		return 1;
+	}
+	
 	FILE* file = fopen(argv[2], "w");
 	if (!file)
 	{
@@ -157,7 +164,7 @@ int main(int argc, char** argv)
 		//PrintTree(root_node, 0);
 		check_semantic(root_node);
 		//printf("1\n");
-		translate(root_node, file);
+		translate(root_node, fp, file);
 	}
 
 }
