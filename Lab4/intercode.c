@@ -43,8 +43,18 @@ static int label_num = 0;
 static int temp_num = 0;
 static int var_num = 0;
 
+static int ebp = 0;
+Operand func_op = NULL;
+
 void op_print(Operand op, FILE *file)
 {
+	if (op->kind == 1 || op->kind == 3 || op->kind == 5)
+	{
+		op->offset = ebp;
+		ebp = ebp - 4;
+	}
+	else
+	if (op->kind == 4) ebp = 0;
 	if (op->kind == 1)
 		fprintf(file, "v%d", op->u.var_number);
 	else
@@ -249,6 +259,8 @@ void print(FILE *file)
 		{
 			fprintf(file, "FUNCTION ");
 			Operand op = p->code.u.function_dec.op;
+			if (func_op == NULL) func_op = op;
+			else {func_op->size = ebp; func_op = op;}
 			op_print(op, file);
 			fprintf(file, " :\n");
 		}
@@ -280,6 +292,7 @@ void print(FILE *file)
 		}
 		p = p->next;
 	}
+	if (strcmp(func_op->u.name, "main") == 0) func_op->size = ebp;
 }
 
 void translate(Tree *node, FILE* fp, FILE *file)

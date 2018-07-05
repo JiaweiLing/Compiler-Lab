@@ -20,6 +20,7 @@ struct Operand_
 		char name[100];
 		char relop[100];
 	} u;
+	int offset, size;
 	Operand next;
 };
 struct InterCode
