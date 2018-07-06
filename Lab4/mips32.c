@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<stdarg.h>
 #include<string.h>
+#include<assert.h>
 #include"mips32.h"
 
 void init_reg();
@@ -179,6 +180,8 @@ void print_lw(FILE *file, int reg, int offset)
 	print_reg(file, reg);
 	fprintf(file, ", %d($fp)\n", offset);
 }
+
+static Count = 0;
 void transform(FILE *file)
 {
 	InterCodes p = Icodes;
@@ -187,10 +190,11 @@ void transform(FILE *file)
 	{
 		if (p->code.kind == 11)
 		{
+			front_arg = 1;
 			Operand op = p->code.u.function_dec.op;
 			func_op = op;
 			
-			fprintf(file, "%s:\n", op->u.name);
+			fprintf(file, "\n%s:\n", op->u.name);
 			
 			fprintf(file, "  addi $sp, $sp, -8\n");
 			fprintf(file, "  sw $ra, 8($sp)\n");
@@ -198,10 +202,12 @@ void transform(FILE *file)
 			fprintf(file, "  move $fp, $sp\n");
 			
 			fprintf(file, "  addi $sp, $sp, %d\n", op->size);
+			front_para = 1;
 		}
 		else
 		if (p->code.kind == 8)
 		{
+			front_arg = 1;
 			Operand op = p->code.u.label.op;
 			fprintf(file, "label%d\n", op->u.label_number);
 		}
@@ -210,7 +216,7 @@ void transform(FILE *file)
 		{
 			Operand op1 = p->code.u.assign.left;
 			Operand op2 = p->code.u.assign.right;
-			
+			front_arg = 1;
 			int reg1 = get_reg();
 			int reg2 = get_reg();
 			
@@ -223,6 +229,7 @@ void transform(FILE *file)
 			}
 			else
 			{
+				
 				print_lw(file, reg2, op2->offset);
 				
 				fprintf(file, "  move $");
@@ -242,13 +249,24 @@ void transform(FILE *file)
 			Operand op2 = p->code.u.binop.op1;
 			Operand op3 = p->code.u.binop.op2;
 			
+			front_arg = 1;
+			
 			int reg1 = get_reg();
 			int reg2 = get_reg();
 			int reg3 = get_reg();
 			
-			print_lw(file, reg2, op2->offset);
-			
-			print_lw(file, reg3, op3->offset);
+			if (op2->kind == 3)
+			{
+				fprintf(file, "  la $");
+				print_reg(file, reg2);
+				fprintf(file, ", %d($fp)\n", op2->offset);
+				print_lw(file, reg3, op3->offset);
+			}
+			else
+			{
+				print_lw(file, reg2, op2->offset);
+				print_lw(file, reg3, op3->offset);
+			}
 			
 			fprintf(file, "  add $");
 			print_reg(file, reg1);
@@ -259,22 +277,94 @@ void transform(FILE *file)
 			fprintf(file, "\n");
 				
 			deal(file, reg1, op1);
-			deal(file, reg2, op2);
+			reg[reg2] = 0;
 			deal(file, reg3, op3);
 			
-			fprintf(file, "add\n");
 		}
 		else
-		if (p->code.kind == 3)
+		if (p->code.kind == 3 || p->code.kind == 17)
 		{
+			Operand op1 = p->code.u.binop.result;
+			Operand op2 = p->code.u.binop.op1;
+			Operand op3 = p->code.u.binop.op2;
+			
+			front_arg = 1;
+			
+			int reg1 = get_reg();
+			int reg2 = get_reg();
+			int reg3 = get_reg();
+			
+			print_lw(file, reg2, op2->offset);
+			print_lw(file, reg3, op3->offset);
+			
+			if (p->code.kind == 3)
+			{
+				fprintf(file, "  sub $");
+				print_reg(file, reg1);
+				fprintf(file, ", $");
+				print_reg(file, reg2);
+				fprintf(file, ", $");
+				print_reg(file, reg3);
+				fprintf(file, "\n");
+			}
+			else
+			{
+				fprintf(file, "  div $");
+				print_reg(file, reg2);
+				fprintf(file, ", $");
+				print_reg(file, reg3);
+				fprintf(file, "\n");
+				
+				fprintf(file, "  mflo $");
+				print_reg(file, reg1);
+				fprintf(file, "\n");
+			}
+			deal(file, reg1, op1);
+			deal(file, reg2, op2);
+			deal(file, reg3, op3);
 		}
 		else
 		if (p->code.kind == 4)
 		{
+			Operand op1 = p->code.u.binop.result;
+			Operand op2 = p->code.u.binop.op1;
+			Operand op3 = p->code.u.binop.op2;
+			
+			front_arg = 1;
+			
+			int reg1 = get_reg();
+			int reg2 = get_reg();
+			int reg3 = get_reg();
+			print_lw(file, reg2, op2->offset);
+			
+			if (op3->kind == 2)
+			{
+				fprintf(file, "  li $");
+				print_reg(file, reg3);
+				fprintf(file, ", %d\n", op3->value);
+				
+			}
+			else
+			{
+				print_lw(file, reg3, op3->offset);
+			}
+			
+			fprintf(file, "  mul $");
+			print_reg(file, reg1);
+			fprintf(file, ", $");
+			print_reg(file, reg2);
+			fprintf(file, ", $");
+			print_reg(file, reg3);
+			fprintf(file, "\n");
+				
+			deal(file, reg1, op1);
+			deal(file, reg2, op2);
+			if (op3->kind != 2) deal(file, reg3, op3);
 		}
 		else
 		if (p->code.kind == 17)
 		{
+			
 		}
 		else
 		if (p->code.kind == 5)
@@ -290,9 +380,8 @@ void transform(FILE *file)
 			
 			fprintf(file, "  lw $ra, 8($fp)\n");
 			fprintf(file, "  lw $fp, 4($fp)\n");
-			fprintf(file, "  addi $sp, $sp, %d\n", -func_op->size);
+			fprintf(file, "  addi $sp, $sp, %d\n", (4 * Count) + 8 -func_op->size);
 			fprintf(file, "  jr $ra\n");
-			fprintf(file, "ret\n");
 		}
 		else
 		if (p->code.kind == 6)
@@ -312,7 +401,6 @@ void transform(FILE *file)
 			fprintf(file, ", $v0\n");
 			
 			deal(file, reg, op);
-			fprintf(file, "read\n");
 		}
 		else
 		if (p->code.kind == 10)
@@ -325,7 +413,6 @@ void transform(FILE *file)
 			print_reg(file, reg);
 			fprintf(file, "\n");
 			fprintf(file, "  jal write\n");
-			fprintf(file, "write\n");
 		}
 		else
 		if (p->code.kind == 12)
