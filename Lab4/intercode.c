@@ -10,6 +10,9 @@
 void op_print(Operand op, FILE *file);
 
 Operand new_element(Tree *node, int identify);
+int search_element(Operand op, int type);
+Var set_var_array(Var v, int i, Operand op, int type);
+
 InterCodes combine(InterCodes i_code1, InterCodes i_code2);
 
 int search_var(Tree *node);
@@ -42,19 +45,75 @@ InterCodes translate_Cond(Tree *node, Operand True, Operand False);
 static int label_num = 0;
 static int temp_num = 0;
 static int var_num = 0;
+static count_var = 0;
 
 static int ebp = 0;
-Operand func_op = NULL;
 
+int search_element(Operand op, int type)
+{
+	int i;
+	for (i = 0; i < count_var; i++)
+	{
+		Var p = var_array[i];
+		switch (type)
+		{
+			case 1:
+				if (p.var && p.num = op->u.var_number) return i;
+				break;
+			case 2:
+				if (p.temp && p.num = op->u.temp_number) return i;
+				break;
+		}
+	}
+	return -1;
+}
+
+Var set_var_array(Var v, int i, Operand op, int type)
+{
+	switch (type)
+	{
+		case 1:
+			v[i].v = 1;
+			v[i].no = op->u.var_number;
+			v[i].offset = ebp;
+			break;
+		case 2:
+			v[i].t = 1;
+			v[i].no = op->u.temp_no;
+			v[i].offset = ebp;
+			break;
+	}
+	ebp  = ebp - 4;
+	return v[i];
+}
 void op_print(Operand op, FILE *file)
 {
-	if (op->kind == 1 || op->kind == 3 || op->kind == 5)
+	if (op->kind == 1 || op->kind == 3)
 	{
-		op->offset = ebp;
-		ebp = ebp - 4;
+		int index = search_element(op, 1);
+		if (index == -1)
+		{
+			var_array[count_var] = set_var_array(var_array[count_var], count_var, op, 1);
+			op->offset = var_array[count_var].offset;
+			count_var++;
+		}
+		else
+			op->offset = var_array[index].offset;
 	}
 	else
-	if (op->kind == 4) ebp = 0;
+	if (op->kind == 5)
+	{
+		int index = search_element(op, 2);
+		if (index == -1)
+		{
+			var_array[count_var] = set_var_array(var_array[count_var], count_var, op, 2);
+			op->offset = var_array[count_var].offset;
+			count_var++;
+		}
+		else
+			op->offset = var_array[index].offset;
+	}
+	
 	if (op->kind == 1)
 		fprintf(file, "v%d", op->u.var_number);
 	else
@@ -62,7 +121,7 @@ void op_print(Operand op, FILE *file)
 		fprintf(file, "#%d", op->u.value);
 	else
 	if (op->kind == 3)
-		{;}
+		fprintf(file, "&v%d", op->u.var_number);
 	else
 	if (op->kind == 4)
 		fprintf(file, "%s", op->u.name);
@@ -76,6 +135,8 @@ void op_print(Operand op, FILE *file)
 	if (op->kind == 7)
 		fprintf(file, "%s", op->u.relop);
 }
+
+
 Operand new_element(Tree *node, int identify)
 {
 	Operand op = (Operand)malloc(sizeof(struct Operand_));
@@ -112,6 +173,9 @@ Operand new_element(Tree *node, int identify)
 			break;
 	}
 }
+
+
+
 
 int search_var(Tree *node)
 {
@@ -262,6 +326,7 @@ void print(FILE *file)
 			if (func_op == NULL) func_op = op;
 			else {func_op->size = ebp; func_op = op;}
 			op_print(op, file);
+			ebp = 0;
 			fprintf(file, " :\n");
 		}
 		else
@@ -292,7 +357,7 @@ void print(FILE *file)
 		}
 		p = p->next;
 	}
-	if (strcmp(func_op->u.name, "main") == 0) func_op->size = ebp;
+	func_op->size = ebp;
 }
 
 void translate(Tree *node, FILE* fp, FILE *file)
