@@ -14,10 +14,11 @@ lex.yy.c: lexical.l
 
 .PHONY: clean test
 test:
-	./parser test/test1.c testout/out1.ir
-	./parser test/test2.c testout/out2.ir
+	./parser test/test1.c testout/out1.s
+	./parser test/test2.c testout/out2.s
 
 	
 clean:
 	rm -f parser lex.yy.c syntax.tab.c syntax.tab.h syntax.output
 	rm -f testout/*.ir
+	rm -f testout/*.s

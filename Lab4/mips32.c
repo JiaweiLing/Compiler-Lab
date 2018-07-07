@@ -8,8 +8,12 @@
 static int Count = 0;
 static int front_arg = 1;
 static int count_arg = 0;
+Operand func_op = NULL;
 
-static int front_para = 0;
+static int front_para = 1;
+static int count_para = 0;
+static int index_para = 0;
+
 void init_reg();
 int get_reg();
 void print_reg(FILE *file, int i);
@@ -27,7 +31,7 @@ int get_reg()
 {
 	int i;
 	for (i = 8; i <= 25; i++)
-		if (!Reg[i]) {Reg[i] = 1; return 1;}
+		if (!Reg[i]) {Reg[i] = 1; return i;}
 	return -1;
 }
 
@@ -136,9 +140,6 @@ void print_reg(FILE *file, int i)
 		case 31:
 			fprintf(file, "ra");
 			break;
-		case 0:
-			fprintf(file, "$0");
-			break;
 	}
 }
 
@@ -230,6 +231,7 @@ void transform(FILE *file)
 			Operand op = p->code.u.function_dec.op;
 			func_op = op;
 			
+			
 			fprintf(file, "\n%s:\n", op->u.name);
 			
 			fprintf(file, "  addi $sp, $sp, -8\n");
@@ -245,7 +247,7 @@ void transform(FILE *file)
 		{
 			front_arg = 1;
 			Operand op = p->code.u.label.op;
-			fprintf(file, "label%d\n", op->u.label_number);
+			fprintf(file, "label%d:\n", op->u.label_number);
 		}
 		else
 		if (p->code.kind == 1)
@@ -253,11 +255,11 @@ void transform(FILE *file)
 			Operand op1 = p->code.u.assign.left;
 			Operand op2 = p->code.u.assign.right;
 			front_arg = 1;
-			int reg1 = get_reg();
-			int reg2 = get_reg();
+			int reg1, reg2;
 			
 			if (op2->kind == 2)
 			{
+				reg1 = get_reg();
 				fprintf(file, "  li $");
 				print_reg(file, reg1);
 				fprintf(file, ", %d\n", op2->u.value);
@@ -265,7 +267,8 @@ void transform(FILE *file)
 			}
 			else
 			{
-				
+				int reg1 = get_reg(), reg2 = get_reg();
+				//printf("%d\n", op2->offset);
 				print_lw(file, reg2, op2->offset);
 				
 				fprintf(file, "  move $");
@@ -288,11 +291,12 @@ void transform(FILE *file)
 			front_arg = 1;
 			
 			int reg1 = get_reg();
-			int reg2 = get_reg();
+			int reg2;
 			int reg3 = get_reg();
 			
 			if (op2->kind == 3)
 			{
+				reg2 = get_reg();
 				fprintf(file, "  la $");
 				print_reg(file, reg2);
 				fprintf(file, ", %d($fp)\n", op2->offset);
@@ -300,6 +304,7 @@ void transform(FILE *file)
 			}
 			else
 			{
+				reg2 = get_reg();
 				print_lw(file, reg2, op2->offset);
 				print_lw(file, reg3, op3->offset);
 			}
@@ -371,18 +376,20 @@ void transform(FILE *file)
 			
 			int reg1 = get_reg();
 			int reg2 = get_reg();
-			int reg3 = get_reg();
+			int reg3;
 			print_lw(file, reg2, op2->offset);
 			
 			if (op3->kind == 2)
 			{
+				reg3 = get_reg();
 				fprintf(file, "  li $");
 				print_reg(file, reg3);
-				fprintf(file, ", %d\n", op3->value);
+				fprintf(file, ", %d\n", op3->u.value);
 				
 			}
 			else
 			{
+				reg3 = get_reg();
 				print_lw(file, reg3, op3->offset);
 			}
 			
@@ -399,15 +406,11 @@ void transform(FILE *file)
 			if (op3->kind != 2) deal(file, reg3, op3);
 		}
 		else
-		if (p->code.kind == 17)
-		{
-			
-		}
-		else
 		if (p->code.kind == 5)
 		{
 			Operand op = p->code.u.ret_code.ret_value;
 			int reg = get_reg();
+			front_arg = 1;
 			
 			print_lw(file, reg, op->offset);
 			
@@ -435,8 +438,8 @@ void transform(FILE *file)
 			int reg1 = get_reg();
 			int reg2 = get_reg();
 			
-			print_lw(file, reg1, temp1);
-			print_lw(file, reg2, temp2);
+			print_lw(file, reg1, temp1->offset);
+			print_lw(file, reg2, temp2->offset);
 			
 			assert(op->kind == 7);
 			
@@ -466,7 +469,7 @@ void transform(FILE *file)
 		{
 			front_arg = 1;
 			Operand op = p->code.u.Goto.label;
-			fprintf(file, " j label%d\n", op->u.label_number);
+			fprintf(file, "  j label%d\n", op->u.label_number);
 		}
 		else
 		if (p->code.kind == 9)
@@ -490,21 +493,13 @@ void transform(FILE *file)
 			Operand op = p->code.u.write.op;
 			front_arg = 1;
 			
-			int reg1 = get_reg();
-			print_lw(file, reg1, op->offset);
+			int reg = get_reg();
+			print_lw(file, reg, op->offset);
 			
-			int reg2 = get_reg();
-			fprintf(file, "  lw $");
-			print_reg(file, reg2);
-			fprintf(file, ", 0($");
-			print_reg(file, reg1);
-			fprintf(file, ")\n");
-			
-			Reg[reg1] = 0;
-			Reg[reg2] = 0;
+			Reg[reg] = 0;
 			
 			fprintf(file, "  move $a0, $");
-			print_reg(file, reg2);
+			print_reg(file, reg);
 			fprintf(file, "\n");
 			fprintf(file, "  jal write\n");
 			
@@ -540,7 +535,7 @@ void transform(FILE *file)
 				print_lw(file, reg, op->offset);
 				
 				fprintf(file, "  sw $");
-				print_reg(reg);
+				print_reg(file, reg);
 				fprintf(file, ", %d($sp)\n", (count_arg - 3) * 4);
 				
 				Reg[reg] = 0;
@@ -553,7 +548,7 @@ void transform(FILE *file)
 				
 				fprintf(file, "  move $a%d, $", count_arg);
 				print_reg(file, reg);
-				fprintf("\n");
+				fprintf(file, "\n");
 				Reg[reg] = 0;
 			}
 		}
@@ -585,10 +580,10 @@ void transform(FILE *file)
 				int reg = get_reg();
 				
 				fprintf(file, "  lw $");
-				print_reg(reg);
+				print_reg(file, reg);
 				fprintf(file, ", %d($fp)\n", (index_para - 3) * 4 + 8);
 				
-				deal(file, reg, op->offset);
+				deal(file, reg, op);
 				index_para++;
 			}
 			else
@@ -601,7 +596,7 @@ void transform(FILE *file)
 				print_reg(file, reg);
 				fprintf(file, ", $a%d\n", index_para);
 				
-				deal(file, reg, op->offset);
+				deal(file, reg, op);
 				index_para++;
 			}
 		}
@@ -618,7 +613,7 @@ void transform(FILE *file)
 			
 			int reg = get_reg();
 			
-			fprintf(file, "  ja; %s\n", func->u.name);
+			fprintf(file, "  jal %s\n", func->u.name);
 			fprintf(file, "  move $");
 			print_reg(file, reg);
 			fprintf(file, ", $v0\n");

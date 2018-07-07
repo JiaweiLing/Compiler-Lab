@@ -5,17 +5,17 @@
 typedef struct Operand_* Operand;
 typedef struct InterCodes_* InterCodes;
 typedef struct Varcode_* Varcode;
-
+typedef struct Var_ Var;
 enum Operand_kind {_VARIABLE = 1, _CONSTANT = 2, _ADDRESS = 3, _FUNCTIONNAME = 4, _TEMP = 5, _LABEL = 6, _RELOP = 7};
 
 enum InterCodes_kind {ASSIGN_ = 1, ADD_ = 2, SUB_ = 3, MUL_ = 4, RETURN_ = 5, IF_ = 6, GOTO_ = 7, LABEL_ = 8, READ_ = 9, WRITE_ = 10, FUNCTION_ = 11, ARG_ = 12, PARAM_ = 13, DEC_ = 14, CALL_ = 15, ASSIGNOP_ = 16, DIV_ = 17};
 
-struct Var
+struct Var_
 {
 	int var, temp, num, offset;
 };
 
-struct Var var_array[10050];
+Var var_array[10050];
 
 struct Operand_ 
 {

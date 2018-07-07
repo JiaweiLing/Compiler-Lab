@@ -11,7 +11,6 @@ void op_print(Operand op, FILE *file);
 
 Operand new_element(Tree *node, int identify);
 int search_element(Operand op, int type);
-Var set_var_array(Var v, int i, Operand op, int type);
 
 InterCodes combine(InterCodes i_code1, InterCodes i_code2);
 
@@ -31,9 +30,9 @@ InterCodes translate_VarList(Tree *node);
 InterCodes translate_ParamDec(Tree *node);
 InterCodes translate_CompSt(Tree *node);
 InterCodes translate_DefList(Tree *node);
-void translate_Def(Tree *node);
-void translate_DecList(Tree *node);
-void translate_Dec(Tree *node);
+InterCodes translate_Def(Tree *node);
+InterCodes translate_DecList(Tree *node);
+InterCodes translate_Dec(Tree *node);
 Operand translate_VarDec(Tree *node);
 InterCodes translate_StmtList(Tree *node);
 InterCodes translate_Stmt(Tree *node);
@@ -45,9 +44,10 @@ InterCodes translate_Cond(Tree *node, Operand True, Operand False);
 static int label_num = 0;
 static int temp_num = 0;
 static int var_num = 0;
-static count_var = 0;
+static int count_var = 0;
 
 static int ebp = 0;
+static Operand func_op = NULL;
 
 int search_element(Operand op, int type)
 {
@@ -58,76 +58,76 @@ int search_element(Operand op, int type)
 		switch (type)
 		{
 			case 1:
-				if (p.var && p.num = op->u.var_number) return i;
+				if (p.var == 1 && p.num == op->u.var_number) return i;
 				break;
 			case 2:
-				if (p.temp && p.num = op->u.temp_number) return i;
+				if (p.temp == 1 && p.num == op->u.temp_number) return i;
 				break;
 		}
 	}
 	return -1;
 }
 
-Var set_var_array(Var v, int i, Operand op, int type)
-{
-	switch (type)
-	{
-		case 1:
-			v[i].v = 1;
-			v[i].no = op->u.var_number;
-			v[i].offset = ebp;
-			break;
-		case 2:
-			v[i].t = 1;
-			v[i].no = op->u.temp_no;
-			v[i].offset = ebp;
-			break;
-	}
-	ebp  = ebp - 4;
-	return v[i];
-}
 void op_print(Operand op, FILE *file)
 {
-	if (op->kind == 1 || op->kind == 3)
+	
+	if (op->kind == 1)
 	{
 		int index = search_element(op, 1);
 		if (index == -1)
 		{
-			var_array[count_var] = set_var_array(var_array[count_var], count_var, op, 1);
+			var_array[count_var].var = 1;
+			var_array[count_var].num = op->u.var_number;
+			var_array[count_var].offset = ebp;
 			op->offset = var_array[count_var].offset;
 			count_var++;
+			ebp = ebp - 4;
 		}
 		else
 			op->offset = var_array[index].offset;
+			
+		fprintf(file, "v%d", op->u.var_number);
 	}
+	else
+	if (op->kind == 2)
+		fprintf(file, "#%d", op->u.value);
+	else
+	if (op->kind == 3)
+	{
+		int index = search_element(op, 1);
+		if (index == -1)
+		{
+			var_array[count_var].var = 1;
+			var_array[count_var].num = op->u.var_number;
+			var_array[count_var].offset = ebp;
+			op->offset = var_array[count_var].offset;
+			count_var++;
+			ebp = ebp - 4;
+		}
+		else
+			op->offset = var_array[index].offset;
+		fprintf(file, "&v%d", op->u.var_number);
+	}
+	else
+	if (op->kind == 4)
+		fprintf(file, "%s", op->u.name);
 	else
 	if (op->kind == 5)
 	{
 		int index = search_element(op, 2);
 		if (index == -1)
 		{
-			var_array[count_var] = set_var_array(var_array[count_var], count_var, op, 2);
+			var_array[count_var].temp = 1;
+			var_array[count_var].num = op->u.temp_number;
+			var_array[count_var].offset = ebp;
 			op->offset = var_array[count_var].offset;
 			count_var++;
+			ebp = ebp - 4;
 		}
 		else
 			op->offset = var_array[index].offset;
-	}
-	
-	if (op->kind == 1)
-		fprintf(file, "v%d", op->u.var_number);
-	else
-	if (op->kind == 2)
-		fprintf(file, "#%d", op->u.value);
-	else
-	if (op->kind == 3)
-		fprintf(file, "&v%d", op->u.var_number);
-	else
-	if (op->kind == 4)
-		fprintf(file, "%s", op->u.name);
-	else
-	if (op->kind == 5)
 		fprintf(file, "t%d", op->u.temp_number);
+	}
 	else
 	if (op->kind == 6)
 		fprintf(file, "label%d", op->u.label_number);
@@ -522,22 +522,58 @@ InterCodes translate_CompSt(Tree *node)
 
 InterCodes translate_DefList(Tree *node)
 {
-	return NULL;
+	if (!node->num) return NULL;
+	else
+	{
+		InterCodes i_code1 = translate_Def(node->child);
+		InterCodes i_code2 = translate_DefList(node->child->brother);
+		if (i_code1 != NULL && i_code2 != NULL)
+			return combine(i_code1, i_code2);
+		else
+		if (i_code1 != NULL) return i_code1;
+		else
+		if (i_code2 != NULL) return i_code2;
+		else return NULL;
+	}
 }
 
-void translate_Def(Tree *node)
+InterCodes translate_Def(Tree *node)
 {
-
+	return translate_DecList(node->child->brother);
 }
 
-void translate_DecList(Tree *node)
+InterCodes translate_DecList(Tree *node)
 {
-
+	if (node->num == 1)
+		return translate_Dec(node->child);
+	else
+	{
+		InterCodes i_code1 = translate_Dec(node->child);
+		InterCodes i_code2 = translate_DecList(node->child->brother->brother);
+		if (i_code1 != NULL && i_code2 != NULL)
+			return combine(i_code1, i_code2);
+		else
+		if (i_code1 != NULL) return i_code1;
+		else
+		if (i_code2 != NULL) return i_code2;
+		else return NULL;
+	}
 }
 
-void translate_Dec(Tree *node)
+InterCodes translate_Dec(Tree *node)
 {
-
+	if (node->num == 1) return NULL;
+	else
+	{
+		Operand op1 = translate_VarDec(node->child);
+		InterCodes i_code = (InterCodes)malloc(sizeof(struct InterCodes_));
+		i_code = set_code(op1, NULL, 1);
+		
+		Operand op2 = new_element(node, 5);
+		i_code->code.u.assign.right = op2;
+		
+		return combine(translate_Exp(node->child->brother->brother, op2), i_code);
+	}
 }
 
 Operand translate_VarDec(Tree *node)

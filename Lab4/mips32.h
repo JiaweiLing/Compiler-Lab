@@ -2,11 +2,6 @@
 #define MIPS32_H_
 #include "intercode.h"
 
-struct Register
-{
-	int use;
-};
-
-struct Register Reg[32];
+int Reg[32];
 
 #endif
