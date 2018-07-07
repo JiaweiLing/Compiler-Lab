@@ -219,6 +219,253 @@ void print_lw(FILE *file, int reg, int offset)
 	fprintf(file, ", %d($fp)\n", offset);
 }
 
+void print_function(FILE *file, InterCodes p)
+{
+	front_arg = 1;
+			
+	Operand op = p->code.u.function_dec.op;
+	func_op = op;
+			
+	fprintf(file, "\n%s:\n", op->u.name);
+			
+	fprintf(file, "  addi $sp, $sp, -8\n");
+	fprintf(file, "  sw $ra, 8($sp)\n");
+	fprintf(file, "  sw $fp, 4($sp)\n");
+	fprintf(file, "  move $fp, $sp\n");
+			
+	fprintf(file, "  addi $sp, $sp, %d\n", op->size);
+			
+	front_para = 1;
+}
+
+
+void print_label(FILE *file, InterCodes p)
+{
+	front_arg = 1;
+	Operand op = p->code.u.label.op;
+	fprintf(file, "label%d:\n", op->u.label_number);
+}
+
+void print_calculate(FILE *file, InterCodes p, int type)
+{
+	Operand op1 = p->code.u.binop.result;
+	Operand op2 = p->code.u.binop.op1;
+	Operand op3 = p->code.u.binop.op2;
+	
+	front_arg = 1;
+	
+	int reg1 = get_reg();
+	int reg2 = get_reg();
+	int reg3 = get_reg();
+	
+	switch (type)
+	{
+		case 1:
+			if (op2->kind == 3)
+			{
+				fprintf(file, "  la $");
+				print_reg(file, reg2);
+				fprintf(file, ", %d($fp)\n", op2->offset);
+			}
+			else
+				print_lw(file, reg2, op2->offset);
+				
+			print_lw(file, reg3, op3->offset);
+			
+			fprintf(file, "  add $");
+			print_reg(file, reg1);
+			fprintf(file, ", $");
+			print_reg(file, reg2);
+			fprintf(file, ", $");
+			print_reg(file, reg3);
+			fprintf(file, "\n");
+				
+			deal(file, reg1, op1);
+			Reg[reg2] = 0;
+			deal(file, reg3, op3);
+			
+			break;
+		case 2:
+			print_lw(file, reg2, op2->offset);
+			print_lw(file, reg3, op3->offset);
+			
+			fprintf(file, "  sub $");
+			print_reg(file, reg1);
+			fprintf(file, ", $");
+			print_reg(file, reg2);
+			fprintf(file, ", $");
+			print_reg(file, reg3);
+			fprintf(file, "\n");
+			
+			deal(file, reg1, op1);
+			deal(file, reg2, op2);
+			deal(file, reg3, op3);
+			
+			break;
+		case 3:
+			print_lw(file, reg2, op2->offset);
+			
+			if (op3->kind == 2)
+			{
+				
+				fprintf(file, "  li $");
+				print_reg(file, reg3);
+				fprintf(file, ", %d\n", op3->u.value);
+				
+			}
+			else
+			{
+				print_lw(file, reg3, op3->offset);
+			}
+			
+			fprintf(file, "  mul $");
+			print_reg(file, reg1);
+			fprintf(file, ", $");
+			print_reg(file, reg2);
+			fprintf(file, ", $");
+			print_reg(file, reg3);
+			fprintf(file, "\n");
+				
+			deal(file, reg1, op1);
+			deal(file, reg2, op2);
+			if (op3->kind != 2) deal(file, reg3, op3);
+			
+			break;
+		case 4:
+			print_lw(file, reg2, op2->offset);
+			print_lw(file, reg3, op3->offset);
+			
+			fprintf(file, "  div $");
+			print_reg(file, reg2);
+			fprintf(file, ", $");
+			print_reg(file, reg3);
+			fprintf(file, "\n");
+			
+			fprintf(file, "  mflo $");
+			print_reg(file, reg1);
+			fprintf(file, "\n");
+			
+			deal(file, reg1, op1);
+			deal(file, reg2, op2);
+			deal(file, reg3, op3);
+			break;
+	}
+}
+
+void print_return(FILE *file, InterCodes p)
+{
+	Operand op = p->code.u.ret_code.ret_value;
+	int reg = get_reg();
+	front_arg = 1;
+	
+	print_lw(file, reg, op->offset);
+	
+	fprintf(file, "  move $v0, $");
+	print_reg(file, reg);
+	fprintf(file, "\n");
+	
+	fprintf(file, "  lw $ra, 8($fp)\n");
+	fprintf(file, "  lw $fp, 4($fp)\n");
+	fprintf(file, "  addi $sp, $sp, %d\n", (4 * Count) + 8 -func_op->size);
+	fprintf(file, "  jr $ra\n");
+}
+
+void print_if_goto(FILE *file, InterCodes p)
+{
+	Operand temp1 = p->code.u.If.temp1;
+	Operand temp2 = p->code.u.If.temp2;
+
+	Operand op = p->code.u.If.op;
+	
+	Operand label = p->code.u.If.label;
+			
+	front_arg = 1;
+			
+	int reg1 = get_reg();
+	int reg2 = get_reg();
+			
+	print_lw(file, reg1, temp1->offset);
+	print_lw(file, reg2, temp2->offset);
+			
+	assert(op->kind == 7);
+			
+	if (strcmp(op->u.relop, "==") == 0)
+		print_relop(file, reg1, reg2, label, 1);
+	else
+	if (strcmp(op->u.relop, "!=") == 0)
+		print_relop(file, reg1, reg2, label, 2);
+	else
+	if (strcmp(op->u.relop, "<") == 0)
+		print_relop(file, reg1, reg2, label, 3);
+	else
+	if (strcmp(op->u.relop, "<=") == 0)
+		print_relop(file, reg1, reg2, label, 4);
+	else
+	if (strcmp(op->u.relop, ">") == 0)
+		print_relop(file, reg1, reg2, label, 5);
+	else
+	if (strcmp(op->u.relop, ">=") == 0)
+		print_relop(file, reg1, reg2, label, 6);
+			
+	deal(file, reg1, temp1);
+	deal(file, reg2, temp2);
+}
+
+void print_goto(FILE *file, InterCodes p)
+{
+	front_arg = 1;
+	Operand op = p->code.u.Goto.label;
+	fprintf(file, "  j label%d\n", op->u.label_number);
+}
+
+void print_read(FILE *file, InterCodes p)
+{
+	fprintf(file, "  jal read\n");
+	
+	Operand op = p->code.u.read.op;
+	front_arg = 1;
+			
+	int reg = get_reg();
+			
+	fprintf(file, "  move $");
+	print_reg(file, reg);
+	fprintf(file, ", $v0\n");
+			
+	deal(file, reg, op);
+}
+
+void print_write(FILE *file, InterCodes p)
+{
+	Operand op = p->code.u.write.op;
+	front_arg = 1;
+	
+	int reg = get_reg();
+	print_lw(file, reg, op->offset);
+	
+	Reg[reg] = 0;
+	
+	fprintf(file, "  move $a0, $");
+	print_reg(file, reg);
+	fprintf(file, "\n");
+	fprintf(file, "  jal write\n");
+}
+
+void print_call(FILE *file, InterCodes p)
+{
+	Operand op = p->code.u.function_call.ret;
+	Operand func = p->code.u.function_call.func;
+	
+	front_arg = 1;
+	
+	int reg = get_reg();
+	
+	fprintf(file, "  jal %s\n", func->u.name);
+	fprintf(file, "  move $");
+	print_reg(file, reg);
+	fprintf(file, ", $v0\n");
+	deal(file, reg, op);
+}
+
 void transform(FILE *file)
 {
 	InterCodes p = Icodes;
@@ -226,31 +473,10 @@ void transform(FILE *file)
 	while (p != Icodes)
 	{
 		if (p->code.kind == 11)
-		{
-			front_arg = 1;
-			
-			Operand op = p->code.u.function_dec.op;
-			func_op = op;
-			
-			
-			fprintf(file, "\n%s:\n", op->u.name);
-			
-			fprintf(file, "  addi $sp, $sp, -8\n");
-			fprintf(file, "  sw $ra, 8($sp)\n");
-			fprintf(file, "  sw $fp, 4($sp)\n");
-			fprintf(file, "  move $fp, $sp\n");
-			
-			fprintf(file, "  addi $sp, $sp, %d\n", op->size);
-			
-			front_para = 1;
-		}
+			print_function(file, p);
 		else
 		if (p->code.kind == 8)
-		{
-			front_arg = 1;
-			Operand op = p->code.u.label.op;
-			fprintf(file, "label%d:\n", op->u.label_number);
-		}
+			print_label(file, p);
 		else
 		if (p->code.kind == 1)
 		{
@@ -285,224 +511,31 @@ void transform(FILE *file)
 		}
 		else
 		if (p->code.kind == 2)
-		{
-			Operand op1 = p->code.u.binop.result;
-			Operand op2 = p->code.u.binop.op1;
-			Operand op3 = p->code.u.binop.op2;
-			
-			front_arg = 1;
-			
-			int reg1 = get_reg();
-			int reg2 = get_reg();
-			int reg3 = get_reg();
-			
-			if (op2->kind == 3)
-			{
-				fprintf(file, "  la $");
-				print_reg(file, reg2);
-				fprintf(file, ", %d($fp)\n", op2->offset);
-				print_lw(file, reg3, op3->offset);
-			}
-			else
-			{
-				print_lw(file, reg2, op2->offset);
-				print_lw(file, reg3, op3->offset);
-			}
-			
-			fprintf(file, "  add $");
-			print_reg(file, reg1);
-			fprintf(file, ", $");
-			print_reg(file, reg2);
-			fprintf(file, ", $");
-			print_reg(file, reg3);
-			fprintf(file, "\n");
-				
-			deal(file, reg1, op1);
-			Reg[reg2] = 0;
-			deal(file, reg3, op3);
-			
-		}
+			print_calculate(file, p, 1);
 		else
-		if (p->code.kind == 3 || p->code.kind == 17)
-		{
-			Operand op1 = p->code.u.binop.result;
-			Operand op2 = p->code.u.binop.op1;
-			Operand op3 = p->code.u.binop.op2;
-			
-			front_arg = 1;
-			
-			int reg1 = get_reg();
-			int reg2 = get_reg();
-			int reg3 = get_reg();
-			
-			print_lw(file, reg2, op2->offset);
-			print_lw(file, reg3, op3->offset);
-			
-			if (p->code.kind == 3)
-			{
-				fprintf(file, "  sub $");
-				print_reg(file, reg1);
-				fprintf(file, ", $");
-				print_reg(file, reg2);
-				fprintf(file, ", $");
-				print_reg(file, reg3);
-				fprintf(file, "\n");
-			}
-			else
-			{
-				fprintf(file, "  div $");
-				print_reg(file, reg2);
-				fprintf(file, ", $");
-				print_reg(file, reg3);
-				fprintf(file, "\n");
-				
-				fprintf(file, "  mflo $");
-				print_reg(file, reg1);
-				fprintf(file, "\n");
-			}
-			
-			deal(file, reg1, op1);
-			deal(file, reg2, op2);
-			deal(file, reg3, op3);
-		}
+		if (p->code.kind == 3)
+			print_calculate(file, p, 2);
 		else
 		if (p->code.kind == 4)
-		{
-			Operand op1 = p->code.u.binop.result;
-			Operand op2 = p->code.u.binop.op1;
-			Operand op3 = p->code.u.binop.op2;
-			
-			front_arg = 1;
-			
-			int reg1 = get_reg();
-			int reg2 = get_reg();
-			int reg3 = get_reg();
-			print_lw(file, reg2, op2->offset);
-			
-			if (op3->kind == 2)
-			{
-				
-				fprintf(file, "  li $");
-				print_reg(file, reg3);
-				fprintf(file, ", %d\n", op3->u.value);
-				
-			}
-			else
-			{
-				print_lw(file, reg3, op3->offset);
-			}
-			
-			fprintf(file, "  mul $");
-			print_reg(file, reg1);
-			fprintf(file, ", $");
-			print_reg(file, reg2);
-			fprintf(file, ", $");
-			print_reg(file, reg3);
-			fprintf(file, "\n");
-				
-			deal(file, reg1, op1);
-			deal(file, reg2, op2);
-			if (op3->kind != 2) deal(file, reg3, op3);
-		}
+			print_calculate(file, p, 3);
+		else
+		if (p->code.kind == 17)
+			print_calculate(file, p, 4);
 		else
 		if (p->code.kind == 5)
-		{
-			Operand op = p->code.u.ret_code.ret_value;
-			int reg = get_reg();
-			front_arg = 1;
-			
-			print_lw(file, reg, op->offset);
-			
-			fprintf(file, "  move $v0, $");
-			print_reg(file, reg);
-			fprintf(file, "\n");
-			
-			fprintf(file, "  lw $ra, 8($fp)\n");
-			fprintf(file, "  lw $fp, 4($fp)\n");
-			fprintf(file, "  addi $sp, $sp, %d\n", (4 * Count) + 8 -func_op->size);
-			fprintf(file, "  jr $ra\n");
-		}
+			print_return(file, p);
 		else
 		if (p->code.kind == 6)
-		{
-			Operand temp1 = p->code.u.If.temp1;
-			Operand temp2 = p->code.u.If.temp2;
-			
-			Operand op = p->code.u.If.op;
-			
-			Operand label = p->code.u.If.label;
-			
-			front_arg = 1;
-			
-			int reg1 = get_reg();
-			int reg2 = get_reg();
-			
-			print_lw(file, reg1, temp1->offset);
-			print_lw(file, reg2, temp2->offset);
-			
-			assert(op->kind == 7);
-			
-			if (strcmp(op->u.relop, "==") == 0)
-				print_relop(file, reg1, reg2, label, 1);
-			else
-			if (strcmp(op->u.relop, "!=") == 0)
-				print_relop(file, reg1, reg2, label, 2);
-			else
-			if (strcmp(op->u.relop, "<") == 0)
-				print_relop(file, reg1, reg2, label, 3);
-			else
-			if (strcmp(op->u.relop, "<=") == 0)
-				print_relop(file, reg1, reg2, label, 4);
-			else
-			if (strcmp(op->u.relop, ">") == 0)
-				print_relop(file, reg1, reg2, label, 5);
-			else
-			if (strcmp(op->u.relop, ">=") == 0)
-				print_relop(file, reg1, reg2, label, 6);
-			
-			deal(file, reg1, temp1);
-			deal(file, reg2, temp2);
-		}
+			print_if_goto(file, p);
 		else
 		if (p->code.kind == 7)
-		{
-			front_arg = 1;
-			Operand op = p->code.u.Goto.label;
-			fprintf(file, "  j label%d\n", op->u.label_number);
-		}
+			print_goto(file, p);
 		else
 		if (p->code.kind == 9)
-		{
-			fprintf(file, "  jal read\n");
-			
-			Operand op = p->code.u.read.op;
-			front_arg = 1;
-			
-			int reg = get_reg();
-			
-			fprintf(file, "  move $");
-			print_reg(file, reg);
-			fprintf(file, ", $v0\n");
-			
-			deal(file, reg, op);
-		}
+			print_read(file, p);
 		else
 		if (p->code.kind == 10)
-		{
-			Operand op = p->code.u.write.op;
-			front_arg = 1;
-			
-			int reg = get_reg();
-			print_lw(file, reg, op->offset);
-			
-			Reg[reg] = 0;
-			
-			fprintf(file, "  move $a0, $");
-			print_reg(file, reg);
-			fprintf(file, "\n");
-			fprintf(file, "  jal write\n");
-			
-		}
+			print_write(file, p);
 		else
 		if (p->code.kind == 12)
 		{
@@ -604,20 +637,7 @@ void transform(FILE *file)
 		{}
 		else
 		if (p->code.kind == 15)
-		{
-			Operand op = p->code.u.function_call.ret;
-			Operand func = p->code.u.function_call.func;
-			
-			front_arg = 1;
-			
-			int reg = get_reg();
-			
-			fprintf(file, "  jal %s\n", func->u.name);
-			fprintf(file, "  move $");
-			print_reg(file, reg);
-			fprintf(file, ", $v0\n");
-			deal(file, reg, op);
-		}
+			print_call(file, p);
 		p = p->next;
 	}
 }
