@@ -7,6 +7,6 @@ struct Register
 	int use;
 };
 
-struct Register reg[32];
+struct Register Reg[32];
 
 #endif

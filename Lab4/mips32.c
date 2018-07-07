@@ -5,6 +5,11 @@
 #include<assert.h>
 #include"mips32.h"
 
+static int Count = 0;
+static int front_arg = 1;
+static int count_arg = 0;
+
+static int front_para = 0;
 void init_reg();
 int get_reg();
 void print_reg(FILE *file, int i);
@@ -15,14 +20,14 @@ void transform(FILE *file);
 void init_reg()
 {
 	for (int i = 0; i < 32; i++)
-		reg[i] = 0;
+		Reg[i] = 0;
 }
 
 int get_reg()
 {
 	int i;
 	for (i = 8; i <= 25; i++)
-		if (!reg[i]) {reg[i] = 1; return 1;}
+		if (!Reg[i]) {Reg[i] = 1; return 1;}
 	return -1;
 }
 
@@ -136,12 +141,44 @@ void print_reg(FILE *file, int i)
 			break;
 	}
 }
+
+void print_relop(FILE* file, int reg1, int reg2, Operand label, int type)
+{
+	fprintf(file, "  ");
+	switch (type)
+	{
+		case 1:
+			fprintf(file, "beq");
+			break;
+		case 2:
+			fprintf(file, "bne");
+			break;
+		case 3:
+			fprintf(file, "blt");
+			break;
+		case 4:
+			fprintf(file, "ble");
+			break;
+		case 5:
+			fprintf(file, "bgt");
+			break;
+		case 6:
+			fprintf(file, "bge");
+			break;
+	}
+	fprintf(file, " $");
+	print_reg(file, reg1);
+	fprintf(file, ", $");
+	print_reg(file, reg2);
+	fprintf(file, ", label%d\n", label->u.label_number);
+}
+
 void deal(FILE *file, int i, Operand op)
 {
 	fprintf(file, "  sw $");
 	print_reg(file, i);
 	fprintf(file, ", %d($fp)\n", op->offset);
-	reg[i] = 0;
+	Reg[i] = 0;
 }
 
 void mips_code(FILE *file)
@@ -181,7 +218,6 @@ void print_lw(FILE *file, int reg, int offset)
 	fprintf(file, ", %d($fp)\n", offset);
 }
 
-static Count = 0;
 void transform(FILE *file)
 {
 	InterCodes p = Icodes;
@@ -277,7 +313,7 @@ void transform(FILE *file)
 			fprintf(file, "\n");
 				
 			deal(file, reg1, op1);
-			reg[reg2] = 0;
+			Reg[reg2] = 0;
 			deal(file, reg3, op3);
 			
 		}
@@ -319,6 +355,7 @@ void transform(FILE *file)
 				print_reg(file, reg1);
 				fprintf(file, "\n");
 			}
+			
 			deal(file, reg1, op1);
 			deal(file, reg2, op2);
 			deal(file, reg3, op3);
@@ -385,15 +422,60 @@ void transform(FILE *file)
 		}
 		else
 		if (p->code.kind == 6)
-		{}
+		{
+			Operand temp1 = p->code.u.If.temp1;
+			Operand temp2 = p->code.u.If.temp2;
+			
+			Operand op = p->code.u.If.op;
+			
+			Operand label = p->code.u.If.label;
+			
+			front_arg = 1;
+			
+			int reg1 = get_reg();
+			int reg2 = get_reg();
+			
+			print_lw(file, reg1, temp1);
+			print_lw(file, reg2, temp2);
+			
+			assert(op->kind == 7);
+			
+			if (strcmp(op->u.relop, "==") == 0)
+				print_relop(file, reg1, reg2, label, 1);
+			else
+			if (strcmp(op->u.relop, "!=") == 0)
+				print_relop(file, reg1, reg2, label, 2);
+			else
+			if (strcmp(op->u.relop, "<") == 0)
+				print_relop(file, reg1, reg2, label, 3);
+			else
+			if (strcmp(op->u.relop, "<=") == 0)
+				print_relop(file, reg1, reg2, label, 4);
+			else
+			if (strcmp(op->u.relop, ">") == 0)
+				print_relop(file, reg1, reg2, label, 5);
+			else
+			if (strcmp(op->u.relop, ">=") == 0)
+				print_relop(file, reg1, reg2, label, 6);
+			
+			deal(file, reg1, temp1);
+			deal(file, reg2, temp2);
+		}
 		else
 		if (p->code.kind == 7)
-		{}
+		{
+			front_arg = 1;
+			Operand op = p->code.u.Goto.label;
+			fprintf(file, " j label%d\n", op->u.label_number);
+		}
 		else
 		if (p->code.kind == 9)
 		{
 			fprintf(file, "  jal read\n");
+			
 			Operand op = p->code.u.read.op;
+			front_arg = 1;
+			
 			int reg = get_reg();
 			
 			fprintf(file, "  move $");
@@ -406,26 +488,141 @@ void transform(FILE *file)
 		if (p->code.kind == 10)
 		{
 			Operand op = p->code.u.write.op;
-			int reg = get_reg();
+			front_arg = 1;
 			
-			print_lw(file, reg, op->offset);
+			int reg1 = get_reg();
+			print_lw(file, reg1, op->offset);
+			
+			int reg2 = get_reg();
+			fprintf(file, "  lw $");
+			print_reg(file, reg2);
+			fprintf(file, ", 0($");
+			print_reg(file, reg1);
+			fprintf(file, ")\n");
+			
+			Reg[reg1] = 0;
+			Reg[reg2] = 0;
+			
 			fprintf(file, "  move $a0, $");
-			print_reg(file, reg);
+			print_reg(file, reg2);
 			fprintf(file, "\n");
 			fprintf(file, "  jal write\n");
+			
 		}
 		else
 		if (p->code.kind == 12)
-		{}
+		{
+			if (front_arg)
+			{
+				front_arg = 0;
+				count_arg = 0;
+				count_arg++;
+				
+				InterCodes i_code = p->next;
+				
+				while (i_code->code.kind == 12)
+				{
+					count_arg++;
+					i_code = i_code->next;
+				}
+				
+				if (count_arg - 4 > 0) Count = count_arg - 4;
+				else Count = 0;
+				
+				fprintf(file, "  addi $sp, $sp, %d\n", -Count * 4);
+				
+			}
+			count_arg--;
+			if (count_arg >= 4)
+			{
+				Operand op = p->code.u.arg.op;
+				int reg = get_reg();
+				print_lw(file, reg, op->offset);
+				
+				fprintf(file, "  sw $");
+				print_reg(reg);
+				fprintf(file, ", %d($sp)\n", (count_arg - 3) * 4);
+				
+				Reg[reg] = 0;
+			}
+			else
+			{
+				Operand op = p->code.u.arg.op;
+				int reg = get_reg();
+				print_lw(file, reg, op->offset);
+				
+				fprintf(file, "  move $a%d, $", count_arg);
+				print_reg(file, reg);
+				fprintf("\n");
+				Reg[reg] = 0;
+			}
+		}
 		else
 		if (p->code.kind == 13)
-		{}
+		{
+			front_arg = 1;
+			
+			if (front_para)
+			{
+				front_para = 0;
+				
+				count_para = 0;
+				count_para++;
+				index_para = 0;
+				
+				InterCodes i_code = p->next;
+				
+				while (i_code->code.kind == 13)
+				{
+					count_para++;
+					i_code = i_code->next;
+				}
+			}
+			
+			if (index_para >= 4)
+			{
+				Operand op = p->code.u.param.op;
+				int reg = get_reg();
+				
+				fprintf(file, "  lw $");
+				print_reg(reg);
+				fprintf(file, ", %d($fp)\n", (index_para - 3) * 4 + 8);
+				
+				deal(file, reg, op->offset);
+				index_para++;
+			}
+			else
+			{
+				Operand op = p->code.u.param.op;
+				
+				int reg = get_reg();
+				
+				fprintf(file, "  move $");
+				print_reg(file, reg);
+				fprintf(file, ", $a%d\n", index_para);
+				
+				deal(file, reg, op->offset);
+				index_para++;
+			}
+		}
 		else
 		if (p->code.kind == 14)
 		{}
 		else
 		if (p->code.kind == 15)
-		{}
+		{
+			Operand op = p->code.u.function_call.ret;
+			Operand func = p->code.u.function_call.func;
+			
+			front_arg = 1;
+			
+			int reg = get_reg();
+			
+			fprintf(file, "  ja; %s\n", func->u.name);
+			fprintf(file, "  move $");
+			print_reg(file, reg);
+			fprintf(file, ", $v0\n");
+		}
 		p = p->next;
 	}
 }
