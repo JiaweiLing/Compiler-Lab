@@ -11,6 +11,7 @@ void op_print(Operand op, FILE *file);
 
 Operand new_element(Tree *node, int identify);
 int search_element(Operand op, int type);
+Var set_var_array(Var v, int i, Operand op, int type);
 
 InterCodes combine(InterCodes i_code1, InterCodes i_code2);
 
@@ -58,76 +59,77 @@ int search_element(Operand op, int type)
 		switch (type)
 		{
 			case 1:
-				if (p.var == 1 && p.num == op->u.var_number) return i;
+				if (p.var && p.num == op->u.var_number) return i;
 				break;
 			case 2:
-				if (p.temp == 1 && p.num == op->u.temp_number) return i;
+				if (p.temp && p.num == op->u.temp_number) return i;
 				break;
 		}
 	}
 	return -1;
 }
 
+Var set_var_array(Var v, int i, Operand op, int type)
+{
+	switch (type)
+	{
+		case 1:
+			v.var = 1;
+			v.num = op->u.var_number;
+			v.offset = ebp;
+			break;
+		case 2:
+			v.temp = 1;
+			v.num = op->u.var_number;
+			v.offset = ebp;
+			break;
+	}
+	ebp  = ebp - 4;
+	return v;
+}
+
 void op_print(Operand op, FILE *file)
 {
-	
-	if (op->kind == 1)
+	if (op->kind == 1 || op->kind == 3)
 	{
 		int index = search_element(op, 1);
 		if (index == -1)
 		{
-			var_array[count_var].var = 1;
-			var_array[count_var].num = op->u.var_number;
-			var_array[count_var].offset = ebp;
+			var_array[count_var] = set_var_array(var_array[count_var], count_var, op, 1);
 			op->offset = var_array[count_var].offset;
 			count_var++;
-			ebp = ebp - 4;
 		}
 		else
 			op->offset = var_array[index].offset;
-			
-		fprintf(file, "v%d", op->u.var_number);
 	}
-	else
-	if (op->kind == 2)
-		fprintf(file, "#%d", op->u.value);
-	else
-	if (op->kind == 3)
-	{
-		int index = search_element(op, 1);
-		if (index == -1)
-		{
-			var_array[count_var].var = 1;
-			var_array[count_var].num = op->u.var_number;
-			var_array[count_var].offset = ebp;
-			op->offset = var_array[count_var].offset;
-			count_var++;
-			ebp = ebp - 4;
-		}
-		else
-			op->offset = var_array[index].offset;
-		fprintf(file, "&v%d", op->u.var_number);
-	}
-	else
-	if (op->kind == 4)
-		fprintf(file, "%s", op->u.name);
 	else
 	if (op->kind == 5)
 	{
 		int index = search_element(op, 2);
 		if (index == -1)
 		{
-			var_array[count_var].temp = 1;
-			var_array[count_var].num = op->u.temp_number;
-			var_array[count_var].offset = ebp;
+			var_array[count_var] = set_var_array(var_array[count_var], count_var, op, 2);
 			op->offset = var_array[count_var].offset;
 			count_var++;
-			ebp = ebp - 4;
 		}
 		else
 			op->offset = var_array[index].offset;
-		fprintf(file, "t%d", op->u.temp_number);
 	}
+	
+	if (op->kind == 1)
+		fprintf(file, "v%d", op->u.var_number);
+	else
+	if (op->kind == 2)
+		fprintf(file, "#%d", op->u.value);
+	else
+	if (op->kind == 3)
+		fprintf(file, "&v%d", op->u.var_number);
+	else
+	if (op->kind == 4)
+		fprintf(file, "%s", op->u.name);
+	else
+	if (op->kind == 5)
+		fprintf(file, "t%d", op->u.temp_number);
 	else
 	if (op->kind == 6)
 		fprintf(file, "label%d", op->u.label_number);

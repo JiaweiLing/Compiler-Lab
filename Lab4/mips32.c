@@ -228,6 +228,7 @@ void transform(FILE *file)
 		if (p->code.kind == 11)
 		{
 			front_arg = 1;
+			
 			Operand op = p->code.u.function_dec.op;
 			func_op = op;
 			
@@ -240,6 +241,7 @@ void transform(FILE *file)
 			fprintf(file, "  move $fp, $sp\n");
 			
 			fprintf(file, "  addi $sp, $sp, %d\n", op->size);
+			
 			front_para = 1;
 		}
 		else
@@ -291,12 +293,11 @@ void transform(FILE *file)
 			front_arg = 1;
 			
 			int reg1 = get_reg();
-			int reg2;
+			int reg2 = get_reg();
 			int reg3 = get_reg();
 			
 			if (op2->kind == 3)
 			{
-				reg2 = get_reg();
 				fprintf(file, "  la $");
 				print_reg(file, reg2);
 				fprintf(file, ", %d($fp)\n", op2->offset);
@@ -304,7 +305,6 @@ void transform(FILE *file)
 			}
 			else
 			{
-				reg2 = get_reg();
 				print_lw(file, reg2, op2->offset);
 				print_lw(file, reg3, op3->offset);
 			}
@@ -376,12 +376,12 @@ void transform(FILE *file)
 			
 			int reg1 = get_reg();
 			int reg2 = get_reg();
-			int reg3;
+			int reg3 = get_reg();
 			print_lw(file, reg2, op2->offset);
 			
 			if (op3->kind == 2)
 			{
-				reg3 = get_reg();
+				
 				fprintf(file, "  li $");
 				print_reg(file, reg3);
 				fprintf(file, ", %d\n", op3->u.value);
@@ -389,7 +389,6 @@ void transform(FILE *file)
 			}
 			else
 			{
-				reg3 = get_reg();
 				print_lw(file, reg3, op3->offset);
 			}
 			
@@ -617,6 +616,7 @@ void transform(FILE *file)
 			fprintf(file, "  move $");
 			print_reg(file, reg);
 			fprintf(file, ", $v0\n");
+			deal(file, reg, op);
 		}
 		p = p->next;
 	}
