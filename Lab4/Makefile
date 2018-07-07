@@ -14,8 +14,8 @@ lex.yy.c: lexical.l
 
 .PHONY: clean test
 test:
-	./parser test/test1.c testout/out1.s
-	./parser test/test2.c testout/out2.s
+	#./parser test/test1.c testout/out1.s
+	#./parser test/test2.c testout/out2.s
 
 	
 clean:
